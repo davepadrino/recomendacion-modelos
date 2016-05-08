@@ -13,3 +13,4 @@ Referentes a la primer parte de la tarea sobre el sistema de recomendación.
 
 ## Actividades Listas
 - Obtener posibles bots de periodico
+
