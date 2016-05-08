@@ -1,0 +1,67 @@
+---
+title: "Tarea 4"
+author: "David Padrino"
+date: "May 4, 2016"
+output: html_document
+---
+# Tarea #4 Minería de Datos
+La presente tarea consta de dos actividades que se dividen en 
+- Distemas de Recomendación
+- Curvas ROC 
+
+## Introducción
+---------------
+## Primera Parte: Sistemas de Recomendación
+### Se procede en primera instancia a la carga de las bibliotecas a usar en el desarrollo de esta primera actividad
+
+```{r setup, message=FALSE, warning=FALSE}
+#install.packages("arules")
+#install.packages("dplyr")
+#install.packages("arulesViz")
+library("arules")
+#library("dplyr")
+library("arulesViz")
+```
+
+Se procede a la lectura de los archivos a utilizar para realizar el analisis exploratorio
+
+```{r}
+periodico <- read.csv("periodico.csv")
+ejemplo <- read.csv("ejemplo.csv")
+```
+
+Para comenzar con el análisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el análisis.
+
+```{r}
+names(ejemplo)
+names(periodico)
+head(ejemplo$X)
+
+```
+
+De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen índices que no tienen mucha utilidad en las actividades. Proceden a eliminarse.
+
+```{r}
+ejemplo$X <- NULL
+periodico$X <- NULL
+```
+
+### Transacciones bot
+```{r}
+example.bots <- as.character()
+for(i in 1:length(periodico$entry)){
+  calc <- as.numeric(difftime(periodico$exit[i], periodico$entry[i], unit="sec"))
+  if (calc < 21){
+    example.bots <- append(example.bots, as.character(periodico$ID[i]))
+  }
+}
+```
+Se realiza un ciclo para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaño y las siguientes transacciones (solo se mostrarán las 6 primeras)
+
+```{r}
+length(example.bots)
+head(example.bots)
+```
+El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusión a la posible presencia de bots.
+
+
