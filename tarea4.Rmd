@@ -49,75 +49,19 @@ periodico$X <- NULL
 
 ### Transacciones bot
 ```{r}
-periodico2 <- periodico
+#periodico2 <- periodico
 
 example.bots <- as.character()
 time <- as.numeric()
-for(i in 1:length(periodico2$entry)){
-  calc <- as.numeric(difftime(periodico2$exit[i], periodico2$entry[i], unit="sec"))
+for(i in 1:length(periodico$entry)){
+  calc <- as.numeric(difftime(periodico$exit[i], periodico$entry[i], unit="sec"))
   time <- append(time,calc)
   if (calc < 21){
-    example.bots <- append(example.bots, as.character(periodico2$ID[i]))
+    example.bots <- append(example.bots, as.character(periodico$ID[i]))
   }
 }
-periodico2$times <- time
+periodico$times <- time
 rm(time)
-
-
-
-#periodico$entry <- as.POSIXct(periodico$entry, origin = "1970-01-01")
-#periodico$exit <- as.POSIXct(periodico$exit, origin = "1970-01-01")
-#periodico <- mutate(periodico, estadia = exit - entry)
-
-
-
-
-#periodico <- mutate(periodico, estadia = exit - entry)
-#estadia <- periodico$estadia
-# 9961
-
-
-
-as.Date(as.character(periodico2$exit[9961],format="%Y-%m-%d"))-as.Date(as.character(periodico2$entry[9961],format="%Y-%m-%d")) 
-
-as.Date(as.character(periodico2$exit[9961],format="%Y-%m-%d"))-as.Date(as.character(periodico2$entry[9961],format="%Y-%m-%d"))
-
-as.numeric(difftime(as.Date(as.character(periodico2$exit[9961],format="%Y-%m-%d %H:%M:%OS")), as.Date(as.character(periodico2$entry[9961],format="%Y-%m-%d %H:%M:%OS")), unit="sec"))
-
-as.numeric(difftime(as.POSIXct(periodico2$exit[9961], origin = "1970-01-01"), as.POSIXct(periodico2$entry[9961], origin = "1970-01-01"), unit="sec"))
-
-
-as.numeric((as.POSIXct(periodico2$exit[9961], origin = "1970-01-01") - as.POSIXct(periodico2$entry[9961], origin = "1970-01-01")))
-
-
-as.numeric(difftime(periodico2$exit[9961], periodico2$entry[9961], unit="sec"))
-
-
-
-as.POSIXct
-
-
-
-ejemplo2 <- ejemplo
-ejemplo2$entry <- as.POSIXct(ejemplo2$entry)
-ejemplo2$exit <- as.POSIXct(ejemplo2$exit)
-example.bots2 <- as.character()
-time2 <- as.numeric()
-for(i in 1:length(ejemplo2$entry)){
-  calc2 <- as.numeric(difftime(ejemplo2$exit[i], ejemplo2$entry[i], unit="sec"))
-  time2 <- append(time2,calc2)
-  if (calc < 21){
-    example.bots2 <- append(example.bots2, as.character(ejemplo2$ID[i]))
-  }
-}
-ejemplo2$times <- time2
-rm(time2)
-
-
-
-
-
-
 ```
 Se realiza un ciclo para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaño y las siguientes transacciones (solo se mostrarán las 6 primeras)
 
@@ -183,7 +127,7 @@ estadía en la página.
 ```{r}
 times.order <- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)
-last(times.order, 10)
+tail(times.order,10)
 ```
 
 
