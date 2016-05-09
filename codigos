@@ -1,0 +1,25 @@
+  example.bots <- as.character()
+  for(i in 1:length(ejemplo$entry)){
+    calc <- as.numeric(difftime(ejemplo$exit[i], ejemplo$entry[i], unit="sec"))
+    if (calc < 20){
+      example.bots <- append(example.bots, as.character(ejemplo$ID[i]))
+    }
+  }
+
+
+
+
+
+find.bots <- function(periodico){
+  calc <- as.numeric(difftime(periodico$exit, periodico$entry, unit="sec"))
+  if (calc < 20){
+    example.bots <- append(example.bots, as.character(periodico$ID[i]))
+  }
+  return(example.bots)
+}
+
+
+lapply(periodico, find.bots)
+
+items <- unlist(strsplit(ejemplo$items, ","))
+items <- sapply(items, unlist(strsplit(ejemplo$items, ",")))
