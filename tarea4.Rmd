@@ -117,7 +117,7 @@ criterio.
 
 En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual artículo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
 ```{r}
-items <- as.character(periodico$articulos)
+items <- as.character(periodico$article)
 items.names <- unique(unlist(strsplit(items, split = ',')))
 nodata <- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
 colnames(nodata) <- items.names
@@ -129,7 +129,7 @@ for (i in 1:length(items)){
 }
 datransactions <- as(nodata, "transactions")
 #itemFrequency(datransactions2, "absolute")
-rules <- apriori(datransactions2, parameter = list(supp = 0.000616908, conf = 0.98, target = "rules"))
+rules <- apriori(datransactions, parameter = list(supp = 0.000616908, conf = 0.98, target = "rules"))
 inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articulo2")))
 #inspect(subset(rules, subset = lhs %ain% c("politica/articulo1")))
 #inspect(rules)
@@ -159,7 +159,7 @@ nueva <- periodico
 nueva$entry <- NULL
 nueva$exit <- NULL
 nueva$times <- NULL
-nueva$articulos <- NULL
+nueva$article <- NULL
 nueva <- as(nueva, "transactions")
 head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
 #rm(nueva)
