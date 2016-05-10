@@ -1,6 +1,5 @@
 ## Tarea #4: Sistema de recomendación y evaluación de modelos
 
-
 ### Se requiere la instalación previa de los siguientes paquetes
 - install.packages("arules")
 - install.packages("dplyr")
@@ -16,4 +15,6 @@ Referentes a la primer parte de la tarea sobre el sistema de recomendación.
 - Obtener posibles bots de periodico
 - Actividad 1
 - Actividad 5
+- Actividad 4
+- 
 
