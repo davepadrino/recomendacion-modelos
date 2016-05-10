@@ -120,24 +120,38 @@ En esta actividad se procede a transformar la columnas (items, por comodidad en 
 items <- as.character(periodico$items)
 items <- gsub("}|\\{|[:blank:]",x=items,"")
 items.names <- unique(unlist(strsplit(items, split = ',')))
-nodata <- as.data.frame(matrix(0, nrow = length(items), ncol = length(items.names)))
+nodata <- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
 colnames(nodata) <- items.names
 for (i in 1:length(items)){
   aux <- unlist(strsplit(items[i], split = ','))
   for (j in aux){
-    nodata[i,j] <- 1
+    nodata[i,j] <- T
   }
 }
-
-
-trans <- as(nuevo, "transactions")
+datransactions <- as(nodata, "transactions")
 summary(trans)
 unique(trans)
 
-itemFrequencyPlot(trans, topN = 10, "absolute")
-itemFrequency(trans, "absolute")
+items2 <- as.character(ejemplo$items)
+items2 <- gsub("}|\\{|[:blank:]",x=items2,"")
+items.names2 <- unique(unlist(strsplit(items2, split = ',')))
+nodata2 <- as.data.frame(matrix(nrow = length(items2), ncol = length(items.names2)))
+colnames(nodata2) <- items.names2
+for (i in 1:length(items2)){
+  aux <- unlist(strsplit(items2[i], split = ','))
+  for (j in aux){
+    nodata2[i,j] <- T
+  }
+}
 
-reglas <- apriori(trans, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
+datransactions2 <- as(nodata2, "transactions")
+summary(datransactions2)
+unique(datransactions2)
+
+itemFrequencyPlot(datransactions2, topN = 10, "absolute")
+itemFrequency(datransactions2, "absolute")
+
+reglas <- apriori(datransactions2, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
 
 
 #in es cualquiera de los 2 , %ain% son los 2

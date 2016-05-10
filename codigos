@@ -68,4 +68,5 @@ for (i in 1:length(items2)){
     nodata2[i,j] <- 1
   }
 }
+nodata[,(1:81)]<- NULL
 
