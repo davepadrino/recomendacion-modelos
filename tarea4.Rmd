@@ -114,9 +114,36 @@ y así aumentar el compromiso del cliente con su portal web. Como usted sabe, pa
 reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuáles
 son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su
 criterio.
+
+En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual artículo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
 ```{r}
 items <- as.character(periodico$items)
+items <- gsub("}|\\{|[:blank:]",x=items,"")
+items.names <- unique(unlist(strsplit(items, split = ',')))
+nodata <- as.data.frame(matrix(0, nrow = length(items), ncol = length(items.names)))
+colnames(nodata) <- items.names
+for (i in 1:length(items)){
+  aux <- unlist(strsplit(items[i], split = ','))
+  for (j in aux){
+    nodata[i,j] <- 1
+  }
+}
 
+
+trans <- as(nuevo, "transactions")
+summary(trans)
+unique(trans)
+
+itemFrequencyPlot(trans, topN = 10, "absolute")
+itemFrequency(trans, "absolute")
+
+reglas <- apriori(trans, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
+
+
+#in es cualquiera de los 2 , %ain% son los 2
+inspect(subset(reglas, subset = lhs %ain% c("politica/articulo1","deporte/articulo1")))
+
+inspect(reglas)
 
 ```
 
@@ -153,47 +180,6 @@ head(sort(table(periodico$ID), decreasing = T), 10)
 
 
 
-
-
-
-
-aux <- periodico$items
-aux <- as.character(aux)
-aux <- gsub(pattern = "}",x=aux,replacement = "")
-aux <- gsub(pattern = "\\{",x=aux,replacement = "")
-aux <- gsub(pattern = " ",x=aux,replacement = "")
-
-aux <- aux
-
-#construyo la matriz de transacciones
-nuevo <- matrix(nrow=length(aux) , ncol = 81)
-nuevo[,] <- F
-nuevo <- as.data.frame(nuevo)
-colnames(nuevo) <- valores
-for (i in 1:length(aux)){
-  a <- unlist(strsplit(aux[i],split = ","))
-  print(paste("va por la: ",i))
-  for (j in a){
-    nuevo[i,j] <- T 
-  }
-}
-View(nuevo)
-
-
-trans <- as(nuevo, "transactions")
-summary(trans)
-unique(trans)
-
-itemFrequencyPlot(trans, topN = 10, "absolute")
-itemFrequency(trans, "absolute")
-
-reglas <- apriori(trans, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
-
-
-#in es cualquiera de los 2 , %ain% son los 2
-inspect(subset(reglas, subset = lhs %ain% c("politica/articulo1","deporte/articulo1")))
-
-inspect(reglas)
 ```
 
 
