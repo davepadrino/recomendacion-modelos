@@ -125,6 +125,7 @@ estadía en la página.
 times.order <- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)
 tail(times.order,10)
+rm(times.order)
 ```
 
 ### Actividad 5
@@ -138,6 +139,7 @@ new <- as(new, "transactions")
 itemFrequencyPlot(new, topN = 10, "absolute")
 sort(itemFrequency(new, "absolute"), decreasing = T)
 head(sort(itemFrequency(new, "absolute"), decreasing = T), 10)
+rm(new)
 
 ```
 
