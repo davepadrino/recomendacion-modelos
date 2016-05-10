@@ -145,19 +145,9 @@ for (i in 1:length(items2)){
 }
 
 datransactions2 <- as(nodata2, "transactions")
-summary(datransactions2)
-unique(datransactions2)
-
-itemFrequencyPlot(datransactions2, topN = 10, "absolute")
 itemFrequency(datransactions2, "absolute")
 
-reglas <- apriori(datransactions2, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
 
-
-#in es cualquiera de los 2 , %ain% son los 2
-inspect(subset(reglas, subset = lhs %ain% c("politica/articulo1","deporte/articulo1")))
-
-inspect(reglas)
 
 ```
 
@@ -187,12 +177,6 @@ head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
 # 10 TransactionID con mas apariciones
 #summary(periodico, maxsum = 11)[,1]
 head(sort(table(periodico$ID), decreasing = T), 10)
-
-
-
-
-
-
 
 ```
 
