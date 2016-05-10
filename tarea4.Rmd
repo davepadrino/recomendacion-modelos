@@ -109,7 +109,13 @@ periodico$articulos <- sapply(as.character(periodico$items), unliststr)
 ```
 
 ### Actividad 3
+Dado un usuario nuevo que haya ingresado a n artículos (n variable), poder recomendar un artículo n+1
+y así aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las
+reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuáles
+son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su
+criterio.
 ```{r}
+items <- as.character(periodico$items)
 
 
 ```
@@ -128,6 +134,7 @@ rm(times.order)
 ### Actividad 5
 Conocer las 10 transacciones con mayor numeor de apariciones en el dataset
 ```{r}
+# 10 items con mas apariciones
 nueva <- periodico
 nueva$entry <- NULL
 nueva$exit <- NULL
@@ -136,24 +143,9 @@ nueva$articulos <- NULL
 nueva <- as(nueva, "transactions")
 head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
 #rm(nueva)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# 10 TransactionID con mas apariciones
+#summary(periodico, maxsum = 11)[,1]
+head(sort(table(periodico$ID), decreasing = T), 10)
 
 
 
@@ -193,7 +185,7 @@ summary(trans)
 unique(trans)
 
 itemFrequencyPlot(trans, topN = 10, "absolute")
-
+itemFrequency(trans, "absolute")
 
 reglas <- apriori(trans, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
 
