@@ -49,8 +49,6 @@ periodico$X <- NULL
 
 ### Transacciones bot
 ```{r}
-#periodico2 <- periodico
-
 example.bots <- as.character()
 time <- as.numeric()
 for(i in 1:length(periodico$entry)){
@@ -123,14 +121,25 @@ rm(items)
 ### Actividad 4
 Conocer las 10 visitas con mayor tiempo de estadía en la página y las 10 visitas con menor tiempo de
 estadía en la página.
-### Actividad 2
 ```{r}
 times.order <- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)
 tail(times.order,10)
 ```
 
+### Actividad 5
+Conocer las 10 transacciones con mayor numeor de apariciones en el dataset
+```{r}
+new <- periodico
+new$entry <- NULL
+new$exit <- NULL
+new$times <- NULL
+new <- as(new, "transactions")
+itemFrequencyPlot(new, topN = 10, "absolute")
+sort(itemFrequency(new, "absolute"), decreasing = T)
+head(sort(itemFrequency(new, "absolute"), decreasing = T), 10)
 
+```
 
 
 

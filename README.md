@@ -1,5 +1,4 @@
 ## Tarea #4: Sistema de recomendación y evaluación de modelos
-#Revisar presunto error
 
 
 ### Se requiere la instalación previa de los siguientes paquetes
@@ -16,5 +15,5 @@ Referentes a la primer parte de la tarea sobre el sistema de recomendación.
 ## Actividades Listas
 - Obtener posibles bots de periodico
 - Actividad 1
-
+- Actividad 5
 
