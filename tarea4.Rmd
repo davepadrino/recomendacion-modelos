@@ -4,7 +4,7 @@ author: "David Padrino"
 date: "May 4, 2016"
 output: html_document
 ---
-# Tarea #4 Minería de Datos
+# Tarea #4 Miner�?a de Datos
 La presente tarea consta de dos actividades que se dividen en 
 - Distemas de Recomendación
 - Curvas ROC 
@@ -40,7 +40,7 @@ head(ejemplo$X)
 
 ```
 
-De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen índices que no tienen mucha utilidad en las actividades. Proceden a eliminarse.
+De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen �?ndices que no tienen mucha utilidad en las actividades. Proceden a eliminarse.
 
 ```{r}
 ejemplo$X <- NULL
@@ -70,7 +70,7 @@ head(example.bots)
 El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusión a la posible presencia de bots.
 
 ### Actividad 1
-Modificar su dataset de tal manera que no se lean los identificadores de los artículos como itemN sino
+Modificar su dataset de tal manera que no se lean los identificadores de los art�?culos como itemN sino
 por su tipo de contenido contenido/articuloN. Ejemplo: {item1, item10, item81} es la transacción
 {deportes/articulo1, politica/articulo1, opinion/articulo9}.
 
@@ -100,7 +100,9 @@ unliststr <- function(vec){
 }
 
 periodico$items <- as.character(periodico$items)
+items <- sapply(periodico$items, unliststr)
 periodico$articulos <- sapply(periodico$items, unliststr)
+rm(items)
 ```
 
 ### Actividad 2
@@ -117,8 +119,8 @@ periodico$articulos <- sapply(periodico$items, unliststr)
 
 
 ### Actividad 4
-Conocer las 10 visitas con mayor tiempo de estadía en la página y las 10 visitas con menor tiempo de
-estadía en la página.
+Conocer las 10 visitas con mayor tiempo de estad�?a en la página y las 10 visitas con menor tiempo de
+estad�?a en la página.
 ```{r}
 times.order <- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)
