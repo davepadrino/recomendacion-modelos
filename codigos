@@ -18,6 +18,9 @@ find.bots <- function(periodico){
   return(example.bots)
 }
 
+items <- sapply(periodico$items, unliststr)
+rm(items)
+
 
 lapply(periodico, find.bots)
 

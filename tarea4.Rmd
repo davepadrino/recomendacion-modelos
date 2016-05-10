@@ -100,9 +100,7 @@ unliststr <- function(vec){
 }
 
 periodico$items <- as.character(periodico$items)
-items <- sapply(periodico$items, unliststr)
 periodico$articulos <- sapply(periodico$items, unliststr)
-rm(items)
 ```
 
 ### Actividad 2
