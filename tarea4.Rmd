@@ -99,10 +99,7 @@ unliststr <- function(vec){
   return(element)
 }
 
-periodico$items <- as.character(periodico$items)
-items <- sapply(periodico$items, unliststr)
-periodico$articulos <- sapply(periodico$items, unliststr)
-rm(items)
+periodico$articulos <- sapply(as.character(periodico$items), unliststr)
 ```
 
 ### Actividad 2
@@ -131,16 +128,80 @@ rm(times.order)
 ### Actividad 5
 Conocer las 10 transacciones con mayor numeor de apariciones en el dataset
 ```{r}
-new <- periodico
-new$entry <- NULL
-new$exit <- NULL
-new$times <- NULL
-new <- as(new, "transactions")
-itemFrequencyPlot(new, topN = 10, "absolute")
-sort(itemFrequency(new, "absolute"), decreasing = T)
-head(sort(itemFrequency(new, "absolute"), decreasing = T), 10)
-rm(new)
+nueva <- periodico
+nueva$entry <- NULL
+nueva$exit <- NULL
+nueva$times <- NULL
+nueva$articulos <- NULL
+nueva <- as(nueva, "transactions")
+head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
+#rm(nueva)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+aux <- periodico$items
+aux <- as.character(aux)
+aux <- gsub(pattern = "}",x=aux,replacement = "")
+aux <- gsub(pattern = "\\{",x=aux,replacement = "")
+aux <- gsub(pattern = " ",x=aux,replacement = "")
+
+aux <- aux
+
+#construyo la matriz de transacciones
+nuevo <- matrix(nrow=length(aux) , ncol = 81)
+nuevo[,] <- F
+nuevo <- as.data.frame(nuevo)
+colnames(nuevo) <- valores
+for (i in 1:length(aux)){
+  a <- unlist(strsplit(aux[i],split = ","))
+  print(paste("va por la: ",i))
+  for (j in a){
+    nuevo[i,j] <- T 
+  }
+}
+View(nuevo)
+
+
+trans <- as(nuevo, "transactions")
+summary(trans)
+unique(trans)
+
+itemFrequencyPlot(trans, topN = 10, "absolute")
+
+
+reglas <- apriori(trans, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
+
+
+#in es cualquiera de los 2 , %ain% son los 2
+inspect(subset(reglas, subset = lhs %ain% c("politica/articulo1","deporte/articulo1")))
+
+inspect(reglas)
 ```
 
 
