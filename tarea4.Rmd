@@ -99,7 +99,7 @@ unliststr <- function(vec){
   return(element)
 }
 
-periodico$articulos <- sapply(as.character(periodico$items), unliststr)
+periodico$article <- sapply(as.character(periodico$items), unliststr)
 ```
 
 ### Actividad 2
@@ -117,8 +117,7 @@ criterio.
 
 En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual artículo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
 ```{r}
-items <- as.character(periodico$items)
-items <- gsub("}|\\{|[:blank:]",x=items,"")
+items <- as.character(periodico$articulos)
 items.names <- unique(unlist(strsplit(items, split = ',')))
 nodata <- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
 colnames(nodata) <- items.names
@@ -129,23 +128,11 @@ for (i in 1:length(items)){
   }
 }
 datransactions <- as(nodata, "transactions")
-summary(trans)
-unique(trans)
-
-items2 <- as.character(ejemplo$items)
-items2 <- gsub("}|\\{|[:blank:]",x=items2,"")
-items.names2 <- unique(unlist(strsplit(items2, split = ',')))
-nodata2 <- as.data.frame(matrix(nrow = length(items2), ncol = length(items.names2)))
-colnames(nodata2) <- items.names2
-for (i in 1:length(items2)){
-  aux <- unlist(strsplit(items2[i], split = ','))
-  for (j in aux){
-    nodata2[i,j] <- T
-  }
-}
-
-datransactions2 <- as(nodata2, "transactions")
-itemFrequency(datransactions2, "absolute")
+#itemFrequency(datransactions2, "absolute")
+rules <- apriori(datransactions2, parameter = list(supp = 0.000616908, conf = 0.98, target = "rules"))
+inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articulo2")))
+#inspect(subset(rules, subset = lhs %ain% c("politica/articulo1")))
+#inspect(rules)
 
 
 
