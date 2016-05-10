@@ -16,5 +16,5 @@ Referentes a la primer parte de la tarea sobre el sistema de recomendación.
 - Actividad 1
 - Actividad 5
 - Actividad 4
-- 
+- Actividad 3
 
