@@ -19,6 +19,21 @@ find.bots <- function(periodico){
   return(example.bots)
 }
 
+
+
+
+example.bots <- as.character()
+time <- as.numeric()
+for(i in 1:length(periodico$entry)){
+  calc <- as.numeric(difftime(periodico$exit[i], periodico$entry[i], unit="sec"))
+  time <- append(time,calc)
+  if (calc < 21){
+    example.bots <- append(example.bots, as.character(periodico$ID[i]))
+  }
+}
+periodico$times <- time
+
+
 items <- sapply(periodico$items, unliststr)
 rm(items)
 
@@ -81,3 +96,7 @@ inspect(subset(rules, subset = lhs %ain% c("politica/articulo1","deporte/articul
 inspect(subset(rules, subset = lhs %ain% c("item1")))
 
 inspect(rules)
+
+
+
+

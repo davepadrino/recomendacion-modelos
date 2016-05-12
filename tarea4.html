@@ -115,14 +115,14 @@ $(document).ready(function () {
 </div>
 
 
-<div id="tarea-4-mineraa-de-datos" class="section level1">
-<h1>Tarea #4 MinerÃ?a de Datos</h1>
-<p>La presente tarea consta de dos actividades que se dividen en - Distemas de RecomendaciÃ³n - Curvas ROC</p>
-<div id="introduccian" class="section level2">
-<h2>## IntroducciÃ³n</h2>
+<div id="tarea-4-mineria-de-datos" class="section level1">
+<h1>Tarea #4 Mineria de Datos</h1>
+<p>La presente tarea consta de dos actividades que se dividen en - Distemas de Recomendacion - Curvas ROC</p>
+<div id="introduccion" class="section level2">
+<h2>## Introduccion</h2>
 </div>
-<div id="primera-parte-sistemas-de-recomendacian" class="section level2">
-<h2>Primera Parte: Sistemas de RecomendaciÃ³n</h2>
+<div id="primera-parte-sistemas-de-recomendacion" class="section level2">
+<h2>Primera Parte: Sistemas de Recomendacion</h2>
 <div id="se-procede-en-primera-instancia-a-la-carga-de-las-bibliotecas-a-usar-en-el-desarrollo-de-esta-primera-actividad" class="section level3">
 <h3>Se procede en primera instancia a la carga de las bibliotecas a usar en el desarrollo de esta primera actividad</h3>
 <pre class="r"><code>#install.packages(&quot;arules&quot;)
@@ -134,7 +134,7 @@ library(&quot;arulesViz&quot;)</code></pre>
 <p>Se procede a la lectura de los archivos a utilizar para realizar el analisis exploratorio</p>
 <pre class="r"><code>periodico &lt;- read.csv(&quot;periodico.csv&quot;)
 ejemplo &lt;- read.csv(&quot;ejemplo.csv&quot;)</code></pre>
-<p>Para comenzar con el anÃ¡lisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el anÃ¡lisis.</p>
+<p>Para comenzar con el analisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el analisis.</p>
 <pre class="r"><code>names(ejemplo)</code></pre>
 <pre><code>## [1] &quot;X&quot;        &quot;ID&quot;       &quot;entry&quot;    &quot;exit&quot;     &quot;items&quot;    &quot;articles&quot;</code></pre>
 <pre class="r"><code>names(periodico)</code></pre>
@@ -148,27 +148,19 @@ periodico$X &lt;- NULL</code></pre>
 </div>
 <div id="transacciones-bot" class="section level3">
 <h3>Transacciones bot</h3>
-<pre class="r"><code>example.bots &lt;- as.character()
-time &lt;- as.numeric()
-for(i in 1:length(periodico$entry)){
-  calc &lt;- as.numeric(difftime(periodico$exit[i], periodico$entry[i], unit=&quot;sec&quot;))
-  time &lt;- append(time,calc)
-  if (calc &lt; 21){
-    example.bots &lt;- append(example.bots, as.character(periodico$ID[i]))
-  }
-}
-periodico$times &lt;- time
-rm(time)</code></pre>
-<p>Se realiza un ciclo para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaÃ±o y las siguientes transacciones (solo se mostrarÃ¡n las 6 primeras)</p>
-<pre class="r"><code>length(example.bots)</code></pre>
+<pre class="r"><code>periodico$times &lt;- difftime(periodico$exit, periodico$entry, units =  &quot;secs&quot;)
+possible.bots = periodico$ID[(periodico$times &lt; 21)]</code></pre>
+<p>Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaÃ±o y las siguientes transacciones (solo se mostraran las 6 primeras)</p>
+<pre class="r"><code>length(possible.bots)</code></pre>
 <pre><code>## [1] 2302</code></pre>
-<pre class="r"><code>head(example.bots)</code></pre>
-<pre><code>## [1] &quot;trans58&quot;  &quot;trans85&quot;  &quot;trans108&quot; &quot;trans111&quot; &quot;trans406&quot; &quot;trans408&quot;</code></pre>
-<p>El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusiÃ³n a la posible presencia de bots.</p>
+<pre class="r"><code>head(possible.bots)</code></pre>
+<pre><code>## [1] trans58  trans85  trans108 trans111 trans406 trans408
+## 100000 Levels: trans1 trans10 trans100 trans1000 trans10000 ... trans99999</code></pre>
+<p>El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusion a la posible presencia de bots.</p>
 </div>
 <div id="actividad-1" class="section level3">
 <h3>Actividad 1</h3>
-<p>Modificar su dataset de tal manera que no se lean los identificadores de los artÃ?culos como itemN sino por su tipo de contenido contenido/articuloN. Ejemplo: {item1, item10, item81} es la transacciÃ³n {deportes/articulo1, politica/articulo1, opinion/articulo9}.</p>
+<p>Modificar su dataset de tal manera que no se lean los identificadores de los articulos como itemN sino por su tipo de contenido contenido/articuloN. Ejemplo: {item1, item10, item81} es la transaccion {deportes/articulo1, politica/articulo1, opinion/articulo9}.</p>
 <pre class="r"><code>contenido &lt;- c(&quot;deportes&quot;,&quot;politica&quot;,&quot;variedades&quot;,&quot;internacional&quot;,&quot;nacionales&quot;,&quot;sucesos&quot;,&quot;comunidad&quot;,&quot;negocios&quot;,&quot;opinion&quot;)
 
 unliststr &lt;- function(vec){
@@ -200,8 +192,8 @@ periodico$article &lt;- sapply(as.character(periodico$items), unliststr)</code><
 </div>
 <div id="actividad-3" class="section level3">
 <h3>Actividad 3</h3>
-<p>Dado un usuario nuevo que haya ingresado a n artÃ­culos (n variable), poder recomendar un artÃ­culo n+1 y asÃ­ aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuÃ¡les son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su criterio.</p>
-<p>En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual artÃ­culo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.</p>
+<p>Dado un usuario nuevo que haya ingresado a n articulos (n variable), poder recomendar un articulo n+1 y asi aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuÃ¡les son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su criterio.</p>
+<p>En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual articulo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.</p>
 <pre class="r"><code>items &lt;- as.character(periodico$article)
 items.names &lt;- unique(unlist(strsplit(items, split = ',')))
 nodata &lt;- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
@@ -212,6 +204,7 @@ for (i in 1:length(items)){
     nodata[i,j] &lt;- T
   }
 }
+
 datransactions &lt;- as(nodata, &quot;transactions&quot;)
 #itemFrequency(datransactions2, &quot;absolute&quot;)
 rules &lt;- apriori(datransactions, parameter = list(supp = 0.000616908, conf = 0.98, target = &quot;rules&quot;))</code></pre>
@@ -231,11 +224,11 @@ rules &lt;- apriori(datransactions, parameter = list(supp = 0.000616908, conf = 
 ## 
 ## set item appearances ...[0 item(s)] done [0.00s].
 ## set transactions ...[81 item(s), 131300 transaction(s)] done [0.08s].
-## sorting and recoding items ... [81 item(s)] done [0.01s].
-## creating transaction tree ... done [0.24s].
-## checking subsets of size 1 2 3 4 5 done [0.10s].
+## sorting and recoding items ... [81 item(s)] done [0.02s].
+## creating transaction tree ... done [0.23s].
+## checking subsets of size 1 2 3 4 5 done [0.05s].
 ## writing ... [0 rule(s)] done [0.00s].
-## creating S4 object  ... done [0.04s].</code></pre>
+## creating S4 object  ... done [0.01s].</code></pre>
 <pre class="r"><code>inspect(subset(rules, subset = lhs %ain% c(&quot;deportes/articulo1&quot;,&quot;deportes/articulo2&quot;)))
 #inspect(subset(rules, subset = lhs %ain% c(&quot;politica/articulo1&quot;)))
 #inspect(rules)</code></pre>
@@ -245,9 +238,11 @@ rules &lt;- apriori(datransactions, parameter = list(supp = 0.000616908, conf = 
 <p>Conocer las 10 visitas con mayor tiempo de estadÃ?a en la pÃ¡gina y las 10 visitas con menor tiempo de estadÃ?a en la pÃ¡gina.</p>
 <pre class="r"><code>times.order &lt;- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)</code></pre>
-<pre><code>##  [1] 0 0 0 0 0 0 0 0 0 0</code></pre>
+<pre><code>## Time differences in secs
+##  [1] 0 0 0 0 0 0 0 0 0 0</code></pre>
 <pre class="r"><code>tail(times.order,10)</code></pre>
-<pre><code>##  [1] 11372 11381 11419 11421 11481 11508 11597 11743 12234 12264</code></pre>
+<pre><code>## Time differences in secs
+##  [1] 11372 11381 11419 11421 11481 11508 11597 11743 12234 12264</code></pre>
 <pre class="r"><code>rm(times.order)</code></pre>
 </div>
 <div id="actividad-5" class="section level3">

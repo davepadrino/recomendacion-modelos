@@ -4,14 +4,14 @@ author: "David Padrino"
 date: "May 4, 2016"
 output: html_document
 ---
-# Tarea #4 Miner�?a de Datos
+# Tarea #4 Mineria de Datos
 La presente tarea consta de dos actividades que se dividen en 
-- Distemas de Recomendación
+- Distemas de Recomendacion
 - Curvas ROC 
 
-## Introducción
+## Introduccion
 ---------------
-## Primera Parte: Sistemas de Recomendación
+## Primera Parte: Sistemas de Recomendacion
 ### Se procede en primera instancia a la carga de las bibliotecas a usar en el desarrollo de esta primera actividad
 
 ```{r setup, message=FALSE, warning=FALSE}
@@ -30,7 +30,7 @@ periodico <- read.csv("periodico.csv")
 ejemplo <- read.csv("ejemplo.csv")
 ```
 
-Para comenzar con el análisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el análisis.
+Para comenzar con el analisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el analisis.
 
 ```{r}
 names(ejemplo)
@@ -49,29 +49,20 @@ periodico$X <- NULL
 
 ### Transacciones bot
 ```{r}
-example.bots <- as.character()
-time <- as.numeric()
-for(i in 1:length(periodico$entry)){
-  calc <- as.numeric(difftime(periodico$exit[i], periodico$entry[i], unit="sec"))
-  time <- append(time,calc)
-  if (calc < 21){
-    example.bots <- append(example.bots, as.character(periodico$ID[i]))
-  }
-}
-periodico$times <- time
-rm(time)
+periodico$times <- difftime(periodico$exit, periodico$entry, units =  "secs")
+possible.bots = periodico$ID[(periodico$times < 21)]
 ```
-Se realiza un ciclo para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaño y las siguientes transacciones (solo se mostrarán las 6 primeras)
+Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaño y las siguientes transacciones (solo se mostraran las 6 primeras)
 
 ```{r}
-length(example.bots)
-head(example.bots)
+length(possible.bots)
+head(possible.bots)
 ```
-El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusión a la posible presencia de bots.
+El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusion a la posible presencia de bots.
 
 ### Actividad 1
-Modificar su dataset de tal manera que no se lean los identificadores de los art�?culos como itemN sino
-por su tipo de contenido contenido/articuloN. Ejemplo: {item1, item10, item81} es la transacción
+Modificar su dataset de tal manera que no se lean los identificadores de los articulos como itemN sino
+por su tipo de contenido contenido/articuloN. Ejemplo: {item1, item10, item81} es la transaccion
 {deportes/articulo1, politica/articulo1, opinion/articulo9}.
 
 ```{r}
@@ -109,13 +100,13 @@ periodico$article <- sapply(as.character(periodico$items), unliststr)
 ```
 
 ### Actividad 3
-Dado un usuario nuevo que haya ingresado a n artículos (n variable), poder recomendar un artículo n+1
-y así aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las
+Dado un usuario nuevo que haya ingresado a n articulos (n variable), poder recomendar un articulo n+1
+y asi aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las
 reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuáles
 son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su
 criterio.
 
-En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual artículo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
+En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual articulo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
 ```{r}
 items <- as.character(periodico$article)
 items.names <- unique(unlist(strsplit(items, split = ',')))
@@ -127,6 +118,7 @@ for (i in 1:length(items)){
     nodata[i,j] <- T
   }
 }
+
 datransactions <- as(nodata, "transactions")
 #itemFrequency(datransactions2, "absolute")
 rules <- apriori(datransactions, parameter = list(supp = 0.000616908, conf = 0.98, target = "rules"))
