@@ -40,7 +40,7 @@ head(ejemplo$X)
 
 ```
 
-De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen Ã?ndices que no tienen mucha utilidad en las actividades. Proceden a eliminarse.
+De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen ??ndices que no tienen mucha utilidad en las actividades. Proceden a eliminarse.
 
 ```{r}
 ejemplo$X <- NULL
@@ -50,7 +50,7 @@ periodico$X <- NULL
 ### Transacciones bot
 ```{r}
 periodico$times <- difftime(periodico$exit, periodico$entry, units =  "secs")
-possible.bots = periodico$ID[(periodico$times < 21)]
+possible.bots <- periodico$ID[(periodico$times < 21)]
 ```
 Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaÃ±o y las siguientes transacciones (solo se mostraran las 6 primeras)
 
@@ -134,8 +134,8 @@ inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articu
 
 
 ### Actividad 4
-Conocer las 10 visitas con mayor tiempo de estadÃ?a en la pÃ¡gina y las 10 visitas con menor tiempo de
-estadÃ?a en la pÃ¡gina.
+Conocer las 10 visitas con mayor tiempo de estad??a en la pÃ¡gina y las 10 visitas con menor tiempo de
+estad??a en la pÃ¡gina.
 ```{r}
 times.order <- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)
