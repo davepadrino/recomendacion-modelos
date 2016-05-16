@@ -121,10 +121,10 @@ for (i in 1:length(items)){
 
 datransactions <- as(nodata, "transactions")
 #itemFrequency(datransactions2, "absolute")
-rules <- apriori(datransactions, parameter = list(supp = 0.000616908, conf = 0.98, target = "rules"))
+rules <- apriori(datransactions, parameter = list(supp = 0.005, conf = 0.9, target = "rules"))
 inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articulo2")))
-#inspect(subset(rules, subset = lhs %ain% c("politica/articulo1")))
-#inspect(rules)
+inspect(subset(rules, subset = lhs %ain% c("politica/articulo1")))
+inspect(rules)
 
 
 
@@ -134,8 +134,8 @@ inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articu
 
 
 ### Actividad 4
-Conocer las 10 visitas con mayor tiempo de estad??a en la página y las 10 visitas con menor tiempo de
-estad??a en la página.
+Conocer las 10 visitas con mayor tiempo de estadia en la pagina y las 10 visitas con menor tiempo de
+estadia en la pagina.
 ```{r}
 times.order <- sort(periodico$times, decreasing = FALSE)
 head(times.order, 10)
