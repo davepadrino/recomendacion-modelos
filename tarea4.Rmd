@@ -26,8 +26,8 @@ library("arulesViz")
 Se procede a la lectura de los archivos a utilizar para realizar el analisis exploratorio
 
 ```{r}
-periodico <- read.csv("periodico.csv")
-ejemplo <- read.csv("ejemplo.csv")
+periodico <- read.csv("data/periodico.csv")
+ejemplo <- read.csv("data/ejemplo.csv")
 ```
 
 Para comenzar con el analisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el analisis.
@@ -40,25 +40,27 @@ head(ejemplo$X)
 
 ```
 
-De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen ??ndices que no tienen mucha utilidad en las actividades. Proceden a eliminarse.
-
-```{r}
-ejemplo$X <- NULL
-periodico$X <- NULL
-```
-
 ### Transacciones bot
 ```{r}
 periodico$times <- difftime(periodico$exit, periodico$entry, units =  "secs")
-possible.bots <- periodico$ID[(periodico$times < 21)]
+possible.bots <- periodico$X[(periodico$times < 21)]
+periodico <- periodico[-possible.bots,]
 ```
-Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente tamaño y las siguientes transacciones (solo se mostraran las 6 primeras)
+Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente longitud y las siguientes transacciones (solo se mostraran las 6 primeras). Los bots son eliminados del dataset.
 
 ```{r}
 length(possible.bots)
 head(possible.bots)
 ```
 El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusion a la posible presencia de bots.
+
+De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen indices que no tienen mucha utilidad en las actividades. Proceden a eliminarse ya que fueron utilizadas de forma simple para eliminar los bots.
+```{r}
+ejemplo$X <- NULL
+periodico$X <- NULL
+```
+
+
 
 ### Actividad 1
 Modificar su dataset de tal manera que no se lean los identificadores de los articulos como itemN sino
@@ -93,11 +95,6 @@ unliststr <- function(vec){
 periodico$article <- sapply(as.character(periodico$items), unliststr)
 ```
 
-### Actividad 2
-```{r}
-
-
-```
 
 ### Actividad 3
 Dado un usuario nuevo que haya ingresado a n articulos (n variable), poder recomendar un articulo n+1
@@ -118,6 +115,8 @@ for (i in 1:length(items)){
     nodata[i,j] <- T
   }
 }
+write.csv(nodata,file="data/nodata.csv")
+
 
 datransactions <- as(nodata, "transactions")
 #itemFrequency(datransactions2, "absolute")
@@ -125,13 +124,18 @@ rules <- apriori(datransactions, parameter = list(supp = 0.005, conf = 0.9, targ
 inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articulo2")))
 inspect(subset(rules, subset = lhs %ain% c("politica/articulo1")))
 inspect(rules)
-
-
-
-
-
 ```
 
+### Actividad 2
+```{r}
+nodata <- read.csv("data/nodata.csv")
+nodata2 <- nodata
+nodata2$X <- NULL
+nodata2[!is.na(nodata2)]<- 1
+nodata2[is.na(nodata2)]<- 2
+k.means <- kmeans(nodata2[,c(1:81)], centers = 8)
+
+```
 
 ### Actividad 4
 Conocer las 10 visitas con mayor tiempo de estadia en la pagina y las 10 visitas con menor tiempo de
