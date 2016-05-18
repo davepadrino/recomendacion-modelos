@@ -93,44 +93,47 @@ unliststr <- function(vec){
 }
 
 periodico$article <- sapply(as.character(periodico$items), unliststr)
+head(periodico$article)
 ```
 
 
 ### Actividad 3
 Dado un usuario nuevo que haya ingresado a n articulos (n variable), poder recomendar un articulo n+1
 y asi aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las
-reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuáles
+reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuales
 son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su
 criterio.
 
 En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual articulo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
 ```{r}
-items <- as.character(periodico$article)
-items.names <- unique(unlist(strsplit(items, split = ',')))
-nodata <- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
-colnames(nodata) <- items.names
-for (i in 1:length(items)){
-  aux <- unlist(strsplit(items[i], split = ','))
-  for (j in aux){
-    nodata[i,j] <- T
-  }
-}
-write.csv(nodata,file="data/nodata.csv")
+#items <- as.character(periodico$article)
+#items.names <- unique(unlist(strsplit(items, split = ',')))
+#nodata <- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
+#colnames(nodata) <- items.names
+#for (i in 1:length(items)){
+ # aux <- unlist(strsplit(items[i], split = ','))
+ # for (j in aux){
+   # nodata[i,j] <- T
+  #}
+#}
+#write.csv(nodata,file="data/nodata.csv")
 
-
+nodata <- read.csv("data/nodata.csv")
+nodata$X <- NULL
 datransactions <- as(nodata, "transactions")
 #itemFrequency(datransactions2, "absolute")
-rules <- apriori(datransactions, parameter = list(supp = 0.005, conf = 0.9, target = "rules"))
-inspect(subset(rules, subset = lhs %ain% c("deportes/articulo1","deportes/articulo2")))
-inspect(subset(rules, subset = lhs %ain% c("politica/articulo1")))
+rules <- apriori(datransactions, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
+inspect(subset(rules, subset = lhs %ain% c("deportes.articulo1","deportes.articulo2")))
+inspect(subset(rules, subset = lhs %ain% c("politica.articulo1")))
 inspect(rules)
 ```
+Los valores seleccionados como __soporte__ y __confianza__ fueron seleccionados de acuerdo al numero de transacciones entre la proporcion de las mismas (soporte) y el soporte de la union de 2 conjuntos X y Y sobre el soporte de X, lo que seria lo mismo que la cardinalidad de *cardinalidad*(X_union_Y)/*cardinalidad*(X).
+Se realizaron pruebas sucesivas con diferentes valores y se decidio dejar los expresados anteriormente, de manera que se emitiera un numero razonable de reglas con un alto grado de confianza.
 
 ### Actividad 2
-Conocer los tipos de usuarios que ingresan a su página (ellos creen que son 8 tipos de usuarios) y
-tratar de determinar la proporción de cada tipo de usuario.
+Conocer los tipos de usuarios que ingresan a su pagina (ellos creen que son 8 tipos de usuarios) y
+tratar de determinar la proporcion de cada tipo de usuario.
 ```{r}
-nodata <- read.csv("data/nodata.csv")
 nodata2 <- nodata
 nodata2$X <- NULL
 nodata2[!is.na(nodata2)]<- 1
@@ -138,30 +141,78 @@ nodata2[is.na(nodata2)]<- 2
 k.means <- kmeans(nodata2[,c(1:81)], centers = 8)
 ```
 
+Se crea una nueva columna par asignar las "clases" (numeros identificadores de clusters) a cada fila (usuario) del dataset, luego de haber aplicado el algoritmo __K-Means__ con 8 centroides de acuerdo a las suposiciones hechas por la empresa.
 ```{r}
 periodico$users <- k.means$cluster
 ```
 
+Usuarios tipo 1:
 ```{r}
-times.order <- sort(periodico$times, decreasing = FALSE)
-rm(times.order)
+length(periodico$ID[periodico$users == 1])
+```
+Usuarios tipo 2:
+```{r}
+length(periodico$ID[periodico$users == 2])
+```
+Usuarios tipo 3:
+```{r}
+length(periodico$ID[periodico$users == 3])
+```
+Usuarios tipo 4:
+```{r}
+length(periodico$ID[periodico$users == 4])
+```
+Usuarios tipo 5:
+```{r}
+length(periodico$ID[periodico$users == 5])
+```
+Usuarios tipo 6:
+```{r}
+length(periodico$ID[periodico$users == 6])
+```
+Usuarios tipo 7:
+```{r}
+length(periodico$ID[periodico$users == 7])
 ```
 
+
+
+Proporcion de Usuarios tipo 1:
 ```{r}
-times.order <- sort(periodico$times, decreasing = FALSE)
-rm(times.order)
+length(periodico$ID[periodico$users == 1])/nrow(periodico)
+```
+Proporcion de Usuarios tipo 2:
+```{r}
+length(periodico$ID[periodico$users == 2])/nrow(periodico)
+```
+Proporcion de Usuarios tipo 3:
+```{r}
+length(periodico$ID[periodico$users == 3])/nrow(periodico)
+```
+Proporcion de Usuarios tipo 4:
+```{r}
+length(periodico$ID[periodico$users == 4])/nrow(periodico)
+```
+Proporcion de Usuarios tipo 5:
+```{r}
+length(periodico$ID[periodico$users == 5])/nrow(periodico)
+```
+Proporcion de Usuarios tipo 6:
+```{r}
+length(periodico$ID[periodico$users == 6])/nrow(periodico)
+```
+Proporcion de Usuarios tipo 7:
+```{r}
+length(periodico$ID[periodico$users == 7])/nrow(periodico)
 ```
 
-```{r}
-times.order <- sort(periodico$times, decreasing = FALSE)
-rm(times.order)
-```
+
+
 ### Actividad 4
 Conocer las 10 visitas con mayor tiempo de estadia en la pagina y las 10 visitas con menor tiempo de
 estadia en la pagina.
 ```{r}
-times.order <- sort(periodico$times, decreasing = FALSE)
-rm(times.order)
+times.order <- sort(periodico$times, decreasing = T)
 ```
 #### 10 Visitas con mayor tiempo
 ```{r}
@@ -174,7 +225,7 @@ tail(times.order,10)
 
 
 ### Actividad 5
-Conocer las 10 transacciones con mayor numeor de apariciones en el dataset
+Conocer las 10 transacciones con mayor numero de apariciones en el dataset
 ```{r}
 # 10 items con mas apariciones
 nueva <- periodico
@@ -182,6 +233,7 @@ nueva$entry <- NULL
 nueva$exit <- NULL
 nueva$times <- NULL
 nueva$article <- NULL
+nueva$users <- NULL
 nueva <- as(nueva, "transactions")
 head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
 # 10 TransactionID con mas apariciones
@@ -189,4 +241,3 @@ head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
 head(sort(table(periodico$ID), decreasing = T), 10)
 
 ```
-
