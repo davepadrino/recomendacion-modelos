@@ -127,6 +127,8 @@ inspect(rules)
 ```
 
 ### Actividad 2
+Conocer los tipos de usuarios que ingresan a su página (ellos creen que son 8 tipos de usuarios) y
+tratar de determinar la proporción de cada tipo de usuario.
 ```{r}
 nodata <- read.csv("data/nodata.csv")
 nodata2 <- nodata
@@ -134,18 +136,42 @@ nodata2$X <- NULL
 nodata2[!is.na(nodata2)]<- 1
 nodata2[is.na(nodata2)]<- 2
 k.means <- kmeans(nodata2[,c(1:81)], centers = 8)
-
 ```
 
+```{r}
+periodico$users <- k.means$cluster
+```
+
+```{r}
+times.order <- sort(periodico$times, decreasing = FALSE)
+rm(times.order)
+```
+
+```{r}
+times.order <- sort(periodico$times, decreasing = FALSE)
+rm(times.order)
+```
+
+```{r}
+times.order <- sort(periodico$times, decreasing = FALSE)
+rm(times.order)
+```
 ### Actividad 4
 Conocer las 10 visitas con mayor tiempo de estadia en la pagina y las 10 visitas con menor tiempo de
 estadia en la pagina.
 ```{r}
 times.order <- sort(periodico$times, decreasing = FALSE)
-head(times.order, 10)
-tail(times.order,10)
 rm(times.order)
 ```
+#### 10 Visitas con mayor tiempo
+```{r}
+head(times.order, 10)
+```
+#### 10 Visitas con mayor tiempo
+```{r}
+tail(times.order,10)
+```
+
 
 ### Actividad 5
 Conocer las 10 transacciones con mayor numeor de apariciones en el dataset
@@ -158,13 +184,9 @@ nueva$times <- NULL
 nueva$article <- NULL
 nueva <- as(nueva, "transactions")
 head(sort(itemFrequency(nueva, "absolute"), decreasing = T), 10)
-#rm(nueva)
 # 10 TransactionID con mas apariciones
 #summary(periodico, maxsum = 11)[,1]
 head(sort(table(periodico$ID), decreasing = T), 10)
 
 ```
-
-
-
 
