@@ -27,17 +27,13 @@ Se procede a la lectura de los archivos a utilizar para realizar el analisis exp
 
 ```{r}
 periodico <- read.csv("data/periodico.csv")
-ejemplo <- read.csv("data/ejemplo.csv")
 ```
 
 Para comenzar con el analisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el analisis.
 
 ```{r}
-names(ejemplo)
 names(periodico)
 colnames(periodico)[5] <-  "items"
-head(ejemplo$X)
-
 ```
 
 ### Transacciones bot
@@ -56,7 +52,6 @@ El vector anterior es una muestra de los accesos que duran 20 segundos o menos, 
 
 De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen indices que no tienen mucha utilidad en las actividades. Proceden a eliminarse ya que fueron utilizadas de forma simple para eliminar los bots.
 ```{r}
-ejemplo$X <- NULL
 periodico$X <- NULL
 ```
 

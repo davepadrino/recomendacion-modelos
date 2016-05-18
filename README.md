@@ -17,3 +17,6 @@ Como adicional se plantea el calculo dle area bajo la curva ROC (ROC/AUC)
 
 
 
+### SO y Entorno
+- Windows 8.1
+- R-Studio
