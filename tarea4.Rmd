@@ -208,6 +208,7 @@ length(periodico$ID[periodico$users == 7])/nrow(periodico)
 
 
 
+
 ### Actividad 4
 Conocer las 10 visitas con mayor tiempo de estadia en la pagina y las 10 visitas con menor tiempo de
 estadia en la pagina.
