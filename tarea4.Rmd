@@ -38,17 +38,26 @@ colnames(periodico)[5] <-  "items"
 
 ### Transacciones bot
 ```{r}
-periodico$times <- difftime(periodico$exit, periodico$entry, units =  "secs")
-possible.bots <- periodico$X[(periodico$times < 21)]
-periodico <- periodico[-possible.bots,]
-```
-Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente longitud y las siguientes transacciones (solo se mostraran las 6 primeras). Los bots son eliminados del dataset.
+find.bots <- function(df){
+  possible.bots <- c()
+  for(i in 1:nrow(df)){
+    num.items <- length(unique(unlist(strsplit(as.character(df$items[i]), ","))))
+    if((as.numeric(df$times[i]) <= (num.items*20))){
+          possible.bots <- c(possible.bots, df$X[i])
+    }
+  }
+  return(df[-possible.bots,])  
+}
 
-```{r}
-length(possible.bots)
-head(possible.bots)
+periodico$times <- difftime(periodico$exit, periodico$entry, units =  "secs")
+old.tam <- nrow(periodico)
+periodico <- find.bots(periodico)
+new.tam <- nrow(periodico)
+head(periodico)
+print(paste("Existen el siguiente numero de posibles bots:", old.tam-new.tam))
+
 ```
-El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusion a la posible presencia de bots.
+Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso. Se realiza una funcion para determinar, dados determinados items, cuanto tiempo tarda individualmente cada transaccion, es decir, si hay un solo item, en base a 20 segundos, si hay 2, en base a 40, etc.
 
 De primera pasada todas las columnas parecen tener sentido excepto una, 'X', al observar su contenido, parecen indices que no tienen mucha utilidad en las actividades. Proceden a eliminarse ya que fueron utilizadas de forma simple para eliminar los bots.
 ```{r}
@@ -100,30 +109,48 @@ son estos valores en consecuencia es tarea de usted determinar y justificar los 
 criterio.
 
 En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual articulo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.
+
+Se pudo notar que el ciclo siempre devuelve el mismo elemento (_nodata_), el cual va a ser almacenado en un csv de forma que no tenga que ejecutarse por cada corrida del presente archivo.
+
+La funcion _recommend_ se encarga de seleccionar un elemento aleatoriamente de entre los nombres de las transacciones transformadas a la forma _contenidoN/ArticuloM_. Una vez dado esto, imprimira los valores seleccionadosy se realizara el algoritmo *apriori*. Una vez generadas las reglas se filtraran de forma que solo muestren las 10 primeras con mayor confianza y las 10 primeras con mayor soporte.
 ```{r}
 #items <- as.character(periodico$article)
 #items.names <- unique(unlist(strsplit(items, split = ',')))
 #nodata <- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
 #colnames(nodata) <- items.names
 #for (i in 1:length(items)){
- # aux <- unlist(strsplit(items[i], split = ','))
- # for (j in aux){
-   # nodata[i,j] <- T
-  #}
+#  aux <- unlist(strsplit(items[i], split = ','))
+#  for (j in aux){
+#    nodata[i,j] <- T
+#  }
 #}
 #write.csv(nodata,file="data/nodata.csv")
 
 nodata <- read.csv("data/nodata.csv")
 nodata$X <- NULL
 datransactions <- as(nodata, "transactions")
-#itemFrequency(datransactions2, "absolute")
-rules <- apriori(datransactions, parameter = list(supp = 0.00003, conf = 0.8, target = "rules"))
-inspect(subset(rules, subset = lhs %ain% c("deportes.articulo1","deportes.articulo2")))
-inspect(subset(rules, subset = lhs %ain% c("politica.articulo1")))
-inspect(rules)
+
+recommend <- function(transactions, df, MinSupport, MinConfidence, element){
+  print(paste("Elementos elegidos:",element))
+  rules <- apriori(transactions, parameter = list(supp = MinSupport, conf = MinConfidence, target = "rules"))
+  element <- unique(unlist(strsplit(as.character(element), ",")))
+  element <- gsub("/",".",element )
+  top.support <- sort(subset(rules, subset = lhs %ain% element),
+               decreasing = TRUE, na.last = NA, by = "support")
+  top.confidence <- sort(subset(rules, subset = lhs %ain% element),
+                decreasing = TRUE, na.last = NA, by = "confidence")
+  print(head(inspect(top.support),10))
+  print(head(inspect(top.confidence),10))
+  print(paste("Elementos elegidos:",element))
+}
+recom <- as.character(periodico$article)
+recommend(datransactions, periodico$article, 0.00003, 0.8, sample(recom, 1))
+recommend(datransactions, periodico$article, 0.00003, 0.8, sample(recom, 1))
+
 ```
 Los valores seleccionados como __soporte__ y __confianza__ fueron seleccionados de acuerdo al numero de transacciones entre la proporcion de las mismas (soporte) y el soporte de la union de 2 conjuntos X y Y sobre el soporte de X, lo que seria lo mismo que la cardinalidad de *cardinalidad*(X_union_Y)/*cardinalidad*(X).
-Se realizaron pruebas sucesivas con diferentes valores y se decidio dejar los expresados anteriormente, de manera que se emitiera un numero razonable de reglas con un alto grado de confianza.
+Se realizaron pruebas sucesivas con diferentes valores y se decidio dejar los expresados anteriormente (_0.00003_ para el soporte y _0.8_ para la confianza), de manera que se emitiera un numero razonable de reglas con un alto grado de diversidad en cuanto a sus predicciones, esto debido a que con otras pruebas, predice en proporcion 8 a 2, un solo tipo de contenido. El resultado sera *NULL* cuando no haya ningun antecedente con el parametro seleccionado que haya sido predicho.
+
 
 ### Actividad 2
 Conocer los tipos de usuarios que ingresan a su pagina (ellos creen que son 8 tipos de usuarios) y

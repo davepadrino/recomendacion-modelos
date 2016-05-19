@@ -132,31 +132,49 @@ library(&quot;arules&quot;)
 library(&quot;dplyr&quot;)
 library(&quot;arulesViz&quot;)</code></pre>
 <p>Se procede a la lectura de los archivos a utilizar para realizar el analisis exploratorio</p>
-<pre class="r"><code>periodico &lt;- read.csv(&quot;data/periodico.csv&quot;)
-ejemplo &lt;- read.csv(&quot;data/ejemplo.csv&quot;)</code></pre>
+<pre class="r"><code>periodico &lt;- read.csv(&quot;data/periodico.csv&quot;)</code></pre>
 <p>Para comenzar con el analisis exploratorio se solicita el nombre de sus columnas para asi determinar si hay alguna que no sirva para el analisis.</p>
-<pre class="r"><code>names(ejemplo)</code></pre>
-<pre><code>## [1] &quot;X&quot;        &quot;ID&quot;       &quot;entry&quot;    &quot;exit&quot;     &quot;items&quot;    &quot;articles&quot;</code></pre>
 <pre class="r"><code>names(periodico)</code></pre>
 <pre><code>## [1] &quot;X&quot;        &quot;ID&quot;       &quot;entry&quot;    &quot;exit&quot;     &quot;articles&quot;</code></pre>
-<pre class="r"><code>colnames(periodico)[5] &lt;-  &quot;items&quot;
-head(ejemplo$X)</code></pre>
-<pre><code>## [1] 1 2 3 4 5 6</code></pre>
+<pre class="r"><code>colnames(periodico)[5] &lt;-  &quot;items&quot;</code></pre>
 </div>
 <div id="transacciones-bot" class="section level3">
 <h3>Transacciones bot</h3>
-<pre class="r"><code>periodico$times &lt;- difftime(periodico$exit, periodico$entry, units =  &quot;secs&quot;)
-possible.bots &lt;- periodico$X[(periodico$times &lt; 21)]
-periodico &lt;- periodico[-possible.bots,]</code></pre>
-<p>Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso y se obtiene un vector con el siguiente longitud y las siguientes transacciones (solo se mostraran las 6 primeras). Los bots son eliminados del dataset.</p>
-<pre class="r"><code>length(possible.bots)</code></pre>
-<pre><code>## [1] 2302</code></pre>
-<pre class="r"><code>head(possible.bots)</code></pre>
-<pre><code>## [1]  58  85 108 111 406 408</code></pre>
-<p>El vector anterior es una muestra de los accesos que duran 20 segundos o menos, haciendo alusion a la posible presencia de bots.</p>
+<pre class="r"><code>find.bots &lt;- function(df){
+  possible.bots &lt;- c()
+  for(i in 1:nrow(df)){
+    num.items &lt;- length(unique(unlist(strsplit(as.character(df$items[i]), &quot;,&quot;))))
+    if((as.numeric(df$times[i]) &lt;= (num.items*20))){
+          possible.bots &lt;- c(possible.bots, df$X[i])
+    }
+  }
+  return(df[-possible.bots,])  
+}
+
+periodico$times &lt;- difftime(periodico$exit, periodico$entry, units =  &quot;secs&quot;)
+old.tam &lt;- nrow(periodico)
+periodico &lt;- find.bots(periodico)
+new.tam &lt;- nrow(periodico)
+head(periodico)</code></pre>
+<pre><code>##   X     ID               entry                exit                 items
+## 1 1 trans1 2016-05-02 22:39:52 2016-05-02 22:49:08  {item1,item9,item63}
+## 2 2 trans2 2016-05-02 17:38:55 2016-05-02 17:53:29   {item1,item2,item3}
+## 3 3 trans3 2016-05-01 06:57:57 2016-05-01 07:00:44 {item9,item43,item57}
+## 4 4 trans4 2016-05-01 09:10:07 2016-05-01 09:15:16 {item2,item14,item72}
+## 5 5 trans5 2016-05-01 00:28:29 2016-05-01 01:01:16              {item11}
+## 6 6 trans6 2016-04-30 02:18:59 2016-04-30 02:24:49        {item6,item53}
+##       times
+## 1  556 secs
+## 2  874 secs
+## 3  167 secs
+## 4  309 secs
+## 5 1967 secs
+## 6  350 secs</code></pre>
+<pre class="r"><code>print(paste(&quot;Existen el siguiente numero de posibles bots:&quot;, old.tam-new.tam))</code></pre>
+<pre><code>## [1] &quot;Existen el siguiente numero de posibles bots: 6599&quot;</code></pre>
+<p>Se realiza un recorrido para obtener la diferencia entre los tiempos de acceso. Se realiza una funcion para determinar, dados determinados items, cuanto tiempo tarda individualmente cada transaccion, es decir, si hay un solo item, en base a 20 segundos, si hay 2, en base a 40, etc.</p>
 <p>De primera pasada todas las columnas parecen tener sentido excepto una, ‘X’, al observar su contenido, parecen indices que no tienen mucha utilidad en las actividades. Proceden a eliminarse ya que fueron utilizadas de forma simple para eliminar los bots.</p>
-<pre class="r"><code>ejemplo$X &lt;- NULL
-periodico$X &lt;- NULL</code></pre>
+<pre class="r"><code>periodico$X &lt;- NULL</code></pre>
 </div>
 <div id="actividad-1" class="section level3">
 <h3>Actividad 1</h3>
@@ -198,24 +216,41 @@ head(periodico$article)</code></pre>
 <h3>Actividad 3</h3>
 <p>Dado un usuario nuevo que haya ingresado a n articulos (n variable), poder recomendar un articulo n+1 y asi aumentar el compromiso del cliente con su portal web. Como usted sabe, para poder calcular las reglas necesita como entrada MinSupport y MinConfianza. Sin embargo, el cliente desconoce cuales son estos valores en consecuencia es tarea de usted determinar y justificar los mismos de acuerdo a su criterio.</p>
 <p>En esta actividad se procede a transformar la columnas (items, por comodidad en lectura), a caracter para poder nombrar las columnas del nuevo dataframe (creado al estilo disperso para saber que usuario ha visto cual articulo), de esta forma convertirlo en transacciones y aplicar el algoritmo apriori para saber poder realizar las recomendaciones.</p>
+<p>Se pudo notar que el ciclo siempre devuelve el mismo elemento (<em>nodata</em>), el cual va a ser almacenado en un csv de forma que no tenga que ejecutarse por cada corrida del presente archivo.</p>
+<p>La funcion <em>recommend</em> se encarga de seleccionar un elemento aleatoriamente de entre los nombres de las transacciones transformadas a la forma <em>contenidoN/ArticuloM</em>. Una vez dado esto, imprimira los valores seleccionadosy se realizara el algoritmo <em>apriori</em>. Una vez generadas las reglas se filtraran de forma que solo muestren las 10 primeras con mayor confianza y las 10 primeras con mayor soporte.</p>
 <pre class="r"><code>#items &lt;- as.character(periodico$article)
 #items.names &lt;- unique(unlist(strsplit(items, split = ',')))
 #nodata &lt;- as.data.frame(matrix(nrow = length(items), ncol = length(items.names)))
 #colnames(nodata) &lt;- items.names
 #for (i in 1:length(items)){
- # aux &lt;- unlist(strsplit(items[i], split = ','))
- # for (j in aux){
-   # nodata[i,j] &lt;- T
-  #}
+#  aux &lt;- unlist(strsplit(items[i], split = ','))
+#  for (j in aux){
+#    nodata[i,j] &lt;- T
+#  }
 #}
 #write.csv(nodata,file=&quot;data/nodata.csv&quot;)
 
 nodata &lt;- read.csv(&quot;data/nodata.csv&quot;)
 nodata$X &lt;- NULL
 datransactions &lt;- as(nodata, &quot;transactions&quot;)
-#itemFrequency(datransactions2, &quot;absolute&quot;)
-rules &lt;- apriori(datransactions, parameter = list(supp = 0.00003, conf = 0.8, target = &quot;rules&quot;))</code></pre>
-<pre><code>## Apriori
+
+recommend &lt;- function(transactions, df, MinSupport, MinConfidence, element){
+  print(paste(&quot;Elementos elegidos:&quot;,element))
+  rules &lt;- apriori(transactions, parameter = list(supp = MinSupport, conf = MinConfidence, target = &quot;rules&quot;))
+  element &lt;- unique(unlist(strsplit(as.character(element), &quot;,&quot;)))
+  element &lt;- gsub(&quot;/&quot;,&quot;.&quot;,element )
+  top.support &lt;- sort(subset(rules, subset = lhs %ain% element),
+               decreasing = TRUE, na.last = NA, by = &quot;support&quot;)
+  top.confidence &lt;- sort(subset(rules, subset = lhs %ain% element),
+                decreasing = TRUE, na.last = NA, by = &quot;confidence&quot;)
+  print(head(inspect(top.support),10))
+  print(head(inspect(top.confidence),10))
+  print(paste(&quot;Elementos elegidos:&quot;,element))
+}
+recom &lt;- as.character(periodico$article)
+recommend(datransactions, periodico$article, 0.00003, 0.8, sample(recom, 1))</code></pre>
+<pre><code>## [1] &quot;Elementos elegidos: deportes/articulo5,deportes/articulo7&quot;
+## Apriori
 ## 
 ## Parameter specification:
 ##  confidence minval smax arem  aval originalSupport support minlen maxlen
@@ -230,1042 +265,100 @@ rules &lt;- apriori(datransactions, parameter = list(supp = 0.00003, conf = 0.8,
 ## Absolute minimum support count: 3 
 ## 
 ## set item appearances ...[0 item(s)] done [0.00s].
-## set transactions ...[81 item(s), 128998 transaction(s)] done [0.09s].
+## set transactions ...[81 item(s), 124701 transaction(s)] done [0.12s].
 ## sorting and recoding items ... [81 item(s)] done [0.02s].
-## creating transaction tree ... done [0.31s].
-## checking subsets of size 1 2 3 4 5 6 7 done [0.15s].
-## writing ... [244 rule(s)] done [0.01s].
-## creating S4 object  ... done [0.05s].</code></pre>
-<pre class="r"><code>inspect(subset(rules, subset = lhs %ain% c(&quot;deportes.articulo1&quot;,&quot;deportes.articulo2&quot;)))</code></pre>
-<pre><code>##   lhs                       rhs                       support confidence     lift
-## 1 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    deportes.articulo6,                                                           
-##    sucesos.articulo8}    =&gt; {deportes.articulo9} 3.100823e-05  0.8000000 5.169743
-## 2 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    politica.articulo3,                                                           
-##    comunidad.articulo5}  =&gt; {deportes.articulo7} 3.100823e-05  1.0000000 5.858752
-## 3 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    opinion.articulo9,                                                            
-##    nacionales.articulo1} =&gt; {deportes.articulo6} 3.100823e-05  0.8000000 5.188457
-## 4 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    politica.articulo1,                                                           
-##    politica.articulo4}   =&gt; {deportes.articulo8} 3.100823e-05  1.0000000 7.162179
-## 5 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    deportes.articulo3,                                                           
-##    negocios.articulo6,                                                           
-##    deportes.articulo8}   =&gt; {deportes.articulo7} 3.100823e-05  0.8000000 4.687002
-## 6 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    deportes.articulo7,                                                           
-##    deportes.articulo4,                                                           
-##    nacionales.articulo1} =&gt; {deportes.articulo5} 4.651235e-05  0.8571429 6.235251
-## 7 {deportes.articulo1,                                                           
-##    deportes.articulo9,                                                           
-##    deportes.articulo2,                                                           
-##    deportes.articulo8,                                                           
-##    nacionales.articulo3} =&gt; {deportes.articulo6} 3.100823e-05  0.8000000 5.188457
-## 8 {deportes.articulo1,                                                           
-##    deportes.articulo9,                                                           
-##    deportes.articulo2,                                                           
-##    deportes.articulo6,                                                           
-##    nacionales.articulo3} =&gt; {deportes.articulo8} 3.100823e-05  0.8000000 5.729743
-## 9 {deportes.articulo1,                                                           
-##    deportes.articulo2,                                                           
-##    deportes.articulo6,                                                           
-##    deportes.articulo4,                                                           
-##    politica.articulo9}   =&gt; {deportes.articulo3} 3.100823e-05  1.0000000 6.454418</code></pre>
-<pre class="r"><code>inspect(subset(rules, subset = lhs %ain% c(&quot;politica.articulo1&quot;)))</code></pre>
-<pre><code>##    lhs                       rhs                       support confidence     lift
-## 1  {deportes.articulo3,                                                           
-##     politica.articulo1,                                                           
-##     negocios.articulo2}   =&gt; {deportes.articulo1} 3.100823e-05  0.8000000 4.607894
-## 2  {politica.articulo1,                                                           
-##     deportes.articulo8,                                                           
-##     negocios.articulo8}   =&gt; {deportes.articulo5} 3.100823e-05  0.8000000 5.819568
-## 3  {deportes.articulo3,                                                           
-##     politica.articulo1,                                                           
-##     negocios.articulo8}   =&gt; {deportes.articulo9} 3.100823e-05  0.8000000 5.169743
-## 4  {deportes.articulo6,                                                           
-##     deportes.articulo4,                                                           
-##     politica.articulo1,                                                           
-##     negocios.articulo3}   =&gt; {deportes.articulo3} 3.100823e-05  0.8000000 5.163534
-## 5  {deportes.articulo3,                                                           
-##     deportes.articulo4,                                                           
-##     politica.articulo1,                                                           
-##     negocios.articulo3}   =&gt; {deportes.articulo6} 3.100823e-05  0.8000000 5.188457
-## 6  {deportes.articulo1,                                                           
-##     deportes.articulo3,                                                           
-##     politica.articulo1,                                                           
-##     opinion.articulo9}    =&gt; {deportes.articulo7} 3.100823e-05  0.8000000 4.687002
-## 7  {deportes.articulo1,                                                           
-##     deportes.articulo7,                                                           
-##     politica.articulo1,                                                           
-##     opinion.articulo9}    =&gt; {deportes.articulo3} 3.100823e-05  0.8000000 5.163534
-## 8  {deportes.articulo1,                                                           
-##     deportes.articulo2,                                                           
-##     politica.articulo1,                                                           
-##     politica.articulo4}   =&gt; {deportes.articulo8} 3.100823e-05  1.0000000 7.162179
-## 9  {deportes.articulo1,                                                           
-##     deportes.articulo6,                                                           
-##     politica.articulo1,                                                           
-##     comunidad.articulo6}  =&gt; {deportes.articulo5} 3.100823e-05  1.0000000 7.274460
-## 10 {deportes.articulo1,                                                           
-##     deportes.articulo6,                                                           
-##     politica.articulo1,                                                           
-##     politica.articulo6}   =&gt; {deportes.articulo4} 3.100823e-05  0.8000000 4.650043
-## 11 {deportes.articulo1,                                                           
-##     deportes.articulo4,                                                           
-##     politica.articulo1,                                                           
-##     politica.articulo6}   =&gt; {deportes.articulo6} 3.100823e-05  0.8000000 5.188457
-## 12 {deportes.articulo2,                                                           
-##     deportes.articulo3,                                                           
-##     politica.articulo1,                                                           
-##     variedades.articulo6} =&gt; {deportes.articulo7} 3.100823e-05  0.8000000 4.687002
-## 13 {deportes.articulo3,                                                           
-##     politica.articulo2,                                                           
-##     deportes.articulo4,                                                           
-##     politica.articulo1}   =&gt; {deportes.articulo6} 3.876029e-05  0.8333333 5.404642</code></pre>
-<pre class="r"><code>inspect(rules)</code></pre>
-<pre><code>##     lhs                          rhs                         support confidence      lift
-## 1   {deportes.articulo2,                                                                 
-##      comunidad.articulo8,                                                                
-##      comunidad.articulo4}     =&gt; {comunidad.articulo9}  3.100823e-05  1.0000000 31.234383
-## 2   {comunidad.articulo9,                                                                
-##      politica.articulo2,                                                                 
-##      comunidad.articulo4}     =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 3   {deportes.articulo7,                                                                 
-##      politica.articulo8,                                                                 
-##      comunidad.articulo4}     =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 4   {deportes.articulo8,                                                                 
-##      politica.articulo8,                                                                 
-##      comunidad.articulo7}     =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 5   {deportes.articulo6,                                                                 
-##      variedades.articulo3,                                                               
-##      opinion.articulo4}       =&gt; {deportes.articulo3}   3.100823e-05  1.0000000  6.454418
-## 6   {deportes.articulo3,                                                                 
-##      variedades.articulo3,                                                               
-##      opinion.articulo4}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 7   {deportes.articulo3,                                                                 
-##      variedades.articulo3,                                                               
-##      opinion.articulo4}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 8   {politica.articulo5,                                                                 
-##      deportes.articulo6,                                                                 
-##      opinion.articulo1}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 9   {deportes.articulo9,                                                                 
-##      deportes.articulo7,                                                                 
-##      opinion.articulo1}       =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 10  {deportes.articulo9,                                                                 
-##      deportes.articulo7,                                                                 
-##      opinion.articulo1}       =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 11  {deportes.articulo2,                                                                 
-##      sucesos.articulo3,                                                                  
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 12  {politica.articulo2,                                                                 
-##      politica.articulo7,                                                                 
-##      sucesos.articulo6}       =&gt; {nacionales.articulo1} 3.100823e-05  0.8000000 27.997396
-## 13  {deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      sucesos.articulo6}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 14  {deportes.articulo3,                                                                 
-##      internacional.articulo8,                                                            
-##      sucesos.articulo2}       =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 15  {deportes.articulo3,                                                                 
-##      negocios.articulo9,                                                                 
-##      sucesos.articulo2}       =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 16  {deportes.articulo2,                                                                 
-##      internacional.articulo9,                                                            
-##      sucesos.articulo2}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 17  {comunidad.articulo3,                                                                
-##      sucesos.articulo8,                                                                  
-##      deportes.articulo5}      =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 18  {deportes.articulo8,                                                                 
-##      politica.articulo6,                                                                 
-##      sucesos.articulo5}       =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 19  {deportes.articulo9,                                                                 
-##      variedades.articulo3,                                                               
-##      sucesos.articulo5}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 20  {comunidad.articulo6,                                                                
-##      variedades.articulo5,                                                               
-##      variedades.articulo1}    =&gt; {variedades.articulo7} 3.876029e-05  1.0000000 63.234314
-## 21  {deportes.articulo1,                                                                 
-##      nacionales.articulo5,                                                               
-##      variedades.articulo1}    =&gt; {variedades.articulo4} 3.100823e-05  0.8000000 49.118705
-## 22  {nacionales.articulo5,                                                               
-##      variedades.articulo5,                                                               
-##      variedades.articulo4}    =&gt; {variedades.articulo7} 3.100823e-05  0.8000000 50.587451
-## 23  {nacionales.articulo6,                                                               
-##      variedades.articulo9,                                                               
-##      variedades.articulo7}    =&gt; {variedades.articulo4} 3.100823e-05  0.8000000 49.118705
-## 24  {comunidad.articulo9,                                                                
-##      deportes.articulo6,                                                                 
-##      variedades.articulo7}    =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 25  {nacionales.articulo5,                                                               
-##      variedades.articulo9,                                                               
-##      variedades.articulo8}    =&gt; {variedades.articulo4} 3.876029e-05  0.8333333 51.165318
-## 26  {negocios.articulo6,                                                                 
-##      opinion.articulo6,                                                                  
-##      variedades.articulo4}    =&gt; {variedades.articulo6} 3.100823e-05  0.8000000 24.670906
-## 27  {deportes.articulo6,                                                                 
-##      negocios.articulo3,                                                                 
-##      negocios.articulo2}      =&gt; {deportes.articulo7}   3.876029e-05  0.8333333  4.882293
-## 28  {deportes.articulo9,                                                                 
-##      negocios.articulo3,                                                                 
-##      negocios.articulo2}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 29  {deportes.articulo6,                                                                 
-##      negocios.articulo2,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo9}   3.876029e-05  1.0000000  6.462178
-## 30  {deportes.articulo3,                                                                 
-##      politica.articulo1,                                                                 
-##      negocios.articulo2}      =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 31  {politica.articulo5,                                                                 
-##      negocios.articulo8,                                                                 
-##      comunidad.articulo8}     =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 32  {deportes.articulo6,                                                                 
-##      opinion.articulo3,                                                                  
-##      negocios.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 33  {politica.articulo1,                                                                 
-##      deportes.articulo8,                                                                 
-##      negocios.articulo8}      =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 34  {deportes.articulo3,                                                                 
-##      politica.articulo1,                                                                 
-##      negocios.articulo8}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 35  {deportes.articulo5,                                                                 
-##      variedades.articulo8,                                                               
-##      negocios.articulo5}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 36  {deportes.articulo6,                                                                 
-##      variedades.articulo9,                                                               
-##      negocios.articulo5}      =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 37  {deportes.articulo2,                                                                 
-##      negocios.articulo3,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo7}   3.876029e-05  0.8333333  4.882293
-## 38  {deportes.articulo6,                                                                 
-##      negocios.articulo6,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 39  {nacionales.articulo7,                                                               
-##      deportes.articulo7,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 40  {deportes.articulo7,                                                                 
-##      politica.articulo3,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 41  {deportes.articulo7,                                                                 
-##      politica.articulo3,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 42  {deportes.articulo5,                                                                 
-##      comunidad.articulo2,                                                                
-##      opinion.articulo5}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 43  {deportes.articulo2,                                                                 
-##      politica.articulo4,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 44  {deportes.articulo6,                                                                 
-##      internacional.articulo8,                                                            
-##      variedades.articulo2}    =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 45  {deportes.articulo2,                                                                 
-##      internacional.articulo8,                                                            
-##      politica.articulo9}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 46  {deportes.articulo4,                                                                 
-##      internacional.articulo8,                                                            
-##      politica.articulo9}      =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 47  {deportes.articulo1,                                                                 
-##      negocios.articulo3,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 48  {deportes.articulo6,                                                                 
-##      opinion.articulo6,                                                                  
-##      opinion.articulo8}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 49  {comunidad.articulo3,                                                                
-##      deportes.articulo7,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo5}   3.876029e-05  1.0000000  7.274460
-## 50  {comunidad.articulo3,                                                                
-##      deportes.articulo7,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 51  {deportes.articulo8,                                                                 
-##      negocios.articulo3,                                                                 
-##      internacional.articulo2} =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 52  {deportes.articulo9,                                                                 
-##      politica.articulo3,                                                                 
-##      internacional.articulo2} =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 53  {negocios.articulo3,                                                                 
-##      politica.articulo9,                                                                 
-##      variedades.articulo8}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 54  {negocios.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      variedades.articulo2}    =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 55  {deportes.articulo6,                                                                 
-##      negocios.articulo6,                                                                 
-##      variedades.articulo2}    =&gt; {deportes.articulo4}   3.100823e-05  1.0000000  5.812554
-## 56  {deportes.articulo6,                                                                 
-##      opinion.articulo9,                                                                  
-##      variedades.articulo2}    =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 57  {deportes.articulo8,                                                                 
-##      politica.articulo9,                                                                 
-##      variedades.articulo2}    =&gt; {deportes.articulo3}   3.100823e-05  1.0000000  6.454418
-## 58  {deportes.articulo5,                                                                 
-##      nacionales.articulo2,                                                               
-##      negocios.articulo3}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 59  {deportes.articulo3,                                                                 
-##      nacionales.articulo2,                                                               
-##      internacional.articulo6} =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 60  {politica.articulo5,                                                                 
-##      variedades.articulo9,                                                               
-##      nacionales.articulo2}    =&gt; {deportes.articulo3}   4.651235e-05  0.8571429  5.532358
-## 61  {deportes.articulo1,                                                                 
-##      nacionales.articulo5,                                                               
-##      nacionales.articulo8}    =&gt; {deportes.articulo9}   3.876029e-05  1.0000000  6.462178
-## 62  {deportes.articulo2,                                                                 
-##      negocios.articulo3,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 63  {comunidad.articulo9,                                                                
-##      deportes.articulo2,                                                                 
-##      negocios.articulo6}      =&gt; {deportes.articulo7}   4.651235e-05  0.8571429  5.021787
-## 64  {deportes.articulo3,                                                                 
-##      nacionales.articulo6,                                                               
-##      internacional.articulo9} =&gt; {deportes.articulo1}   6.976852e-05  0.9000000  5.183881
-## 65  {deportes.articulo6,                                                                 
-##      politica.articulo7,                                                                 
-##      nacionales.articulo4}    =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 66  {deportes.articulo9,                                                                 
-##      politica.articulo7,                                                                 
-##      nacionales.articulo4}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 67  {deportes.articulo9,                                                                 
-##      politica.articulo7,                                                                 
-##      nacionales.articulo4}    =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 68  {deportes.articulo2,                                                                 
-##      nacionales.articulo7,                                                               
-##      internacional.articulo6} =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 69  {deportes.articulo7,                                                                 
-##      internacional.articulo6,                                                            
-##      opinion.articulo9}       =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 70  {deportes.articulo2,                                                                 
-##      nacionales.articulo7,                                                               
-##      internacional.articulo3} =&gt; {deportes.articulo1}   3.876029e-05  0.8333333  4.799890
-## 71  {nacionales.articulo7,                                                               
-##      variedades.articulo3,                                                               
-##      variedades.articulo6}    =&gt; {variedades.articulo9} 3.100823e-05  0.8000000 25.023860
-## 72  {comunidad.articulo9,                                                                
-##      deportes.articulo3,                                                                 
-##      nacionales.articulo7}    =&gt; {deportes.articulo4}   3.876029e-05  0.8333333  4.843795
-## 73  {deportes.articulo9,                                                                 
-##      politica.articulo6,                                                                 
-##      comunidad.articulo6}     =&gt; {deportes.articulo7}   3.876029e-05  0.8333333  4.882293
-## 74  {deportes.articulo5,                                                                 
-##      variedades.articulo9,                                                               
-##      politica.articulo6}      =&gt; {deportes.articulo8}   3.100823e-05  0.8000000  5.729743
-## 75  {politica.articulo5,                                                                 
-##      politica.articulo6,                                                                 
-##      variedades.articulo6}    =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 76  {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo5,                                                                 
-##      sucesos.articulo2}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 77  {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      sucesos.articulo2}       =&gt; {deportes.articulo5}   3.100823e-05  1.0000000  7.274460
-## 78  {deportes.articulo3,                                                                 
-##      sucesos.articulo8,                                                                  
-##      deportes.articulo7,                                                                 
-##      deportes.articulo5}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 79  {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      sucesos.articulo8}       =&gt; {deportes.articulo8}   3.100823e-05  0.8000000  5.729743
-## 80  {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      sucesos.articulo8}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 81  {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      sucesos.articulo8}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 82  {variedades.articulo3,                                                               
-##      variedades.articulo4,                                                               
-##      variedades.articulo1,                                                               
-##      opinion.articulo8}       =&gt; {variedades.articulo2} 3.100823e-05  0.8000000 37.431411
-## 83  {variedades.articulo3,                                                               
-##      variedades.articulo2,                                                               
-##      variedades.articulo1,                                                               
-##      opinion.articulo8}       =&gt; {variedades.articulo4} 3.100823e-05  1.0000000 61.398382
-## 84  {variedades.articulo3,                                                               
-##      variedades.articulo2,                                                               
-##      variedades.articulo4,                                                               
-##      opinion.articulo8}       =&gt; {variedades.articulo1} 3.100823e-05  1.0000000 64.146196
-## 85  {variedades.articulo8,                                                               
-##      variedades.articulo2,                                                               
-##      variedades.articulo5,                                                               
-##      variedades.articulo7}    =&gt; {variedades.articulo6} 3.100823e-05  0.8000000 24.670906
-## 86  {deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo6,                                                                 
-##      negocios.articulo2}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 87  {deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo6,                                                                 
-##      negocios.articulo2}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 88  {deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo5,                                                                 
-##      negocios.articulo5}      =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 89  {politica.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      negocios.articulo5}      =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 90  {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo8,                                                                 
-##      negocios.articulo5}      =&gt; {deportes.articulo7}   3.876029e-05  1.0000000  5.858752
-## 91  {deportes.articulo1,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo8,                                                                 
-##      negocios.articulo5}      =&gt; {deportes.articulo3}   3.876029e-05  1.0000000  6.454418
-## 92  {deportes.articulo9,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo5,                                                                 
-##      negocios.articulo5}      =&gt; {deportes.articulo2}   3.876029e-05  1.0000000  7.191727
-## 93  {deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo8,                                                                 
-##      comunidad.articulo8}     =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 94  {deportes.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo3,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 95  {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      politica.articulo3,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo7}   3.100823e-05  1.0000000  5.858752
-## 96  {deportes.articulo1,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo3,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo2}   3.100823e-05  1.0000000  7.191727
-## 97  {deportes.articulo1,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      comunidad.articulo5}     =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 98  {politica.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 99  {deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 100 {deportes.articulo9,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 101 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 102 {deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 103 {deportes.articulo1,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 104 {deportes.articulo9,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 105 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 106 {deportes.articulo1,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 107 {deportes.articulo9,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo5,                                                                 
-##      internacional.articulo8} =&gt; {deportes.articulo4}   3.100823e-05  1.0000000  5.812554
-## 108 {deportes.articulo9,                                                                 
-##      comunidad.articulo3,                                                                
-##      deportes.articulo5,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 109 {comunidad.articulo3,                                                                
-##      deportes.articulo7,                                                                 
-##      deportes.articulo5,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 110 {deportes.articulo9,                                                                 
-##      comunidad.articulo3,                                                                
-##      deportes.articulo7,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo5}   3.100823e-05  1.0000000  7.274460
-## 111 {deportes.articulo9,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo6}   4.651235e-05  0.8571429  5.559061
-## 112 {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      opinion.articulo8}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 113 {deportes.articulo3,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo5}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 114 {deportes.articulo2,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo5,                                                                 
-##      opinion.articulo5}       =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 115 {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      opinion.articulo5}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 116 {deportes.articulo6,                                                                 
-##      negocios.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      internacional.articulo2} =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 117 {deportes.articulo3,                                                                 
-##      negocios.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      internacional.articulo2} =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 118 {deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      negocios.articulo6,                                                                 
-##      internacional.articulo2} =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 119 {deportes.articulo2,                                                                 
-##      deportes.articulo5,                                                                 
-##      deportes.articulo8,                                                                 
-##      variedades.articulo8}    =&gt; {deportes.articulo7}   3.876029e-05  0.8333333  4.882293
-## 120 {deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo8,                                                                 
-##      variedades.articulo8}    =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 121 {deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo8,                                                                 
-##      variedades.articulo8}    =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 122 {deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      opinion.articulo6,                                                                  
-##      variedades.articulo2}    =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 123 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      opinion.articulo6,                                                                  
-##      variedades.articulo2}    =&gt; {deportes.articulo9}   3.100823e-05  1.0000000  6.462178
-## 124 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      opinion.articulo6,                                                                  
-##      variedades.articulo2}    =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 125 {deportes.articulo2,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo8,                                                                 
-##      variedades.articulo2}    =&gt; {deportes.articulo1}   3.876029e-05  0.8333333  4.799890
-## 126 {deportes.articulo1,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo8,                                                                 
-##      variedades.articulo2}    =&gt; {deportes.articulo2}   3.876029e-05  1.0000000  7.191727
-## 127 {politica.articulo5,                                                                 
-##      deportes.articulo4,                                                                 
-##      variedades.articulo9,                                                               
-##      nacionales.articulo2}    =&gt; {deportes.articulo3}   3.100823e-05  1.0000000  6.454418
-## 128 {comunidad.articulo9,                                                                
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      nacionales.articulo5}    =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 129 {deportes.articulo1,                                                                 
-##      comunidad.articulo9,                                                                
-##      deportes.articulo6,                                                                 
-##      nacionales.articulo5}    =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 130 {deportes.articulo1,                                                                 
-##      comunidad.articulo9,                                                                
-##      deportes.articulo7,                                                                 
-##      nacionales.articulo5}    =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 131 {deportes.articulo9,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      nacionales.articulo5}    =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 132 {deportes.articulo9,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      nacionales.articulo5}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 133 {deportes.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo8,                                                                 
-##      nacionales.articulo8}    =&gt; {deportes.articulo1}   4.651235e-05  0.8571429  4.937030
-## 134 {deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo1,                                                                 
-##      negocios.articulo3}      =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 135 {deportes.articulo3,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo1,                                                                 
-##      negocios.articulo3}      =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 136 {deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo8,                                                                 
-##      negocios.articulo3}      =&gt; {deportes.articulo1}   3.876029e-05  0.8333333  4.799890
-## 137 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo8,                                                                 
-##      negocios.articulo3}      =&gt; {deportes.articulo3}   3.876029e-05  0.8333333  5.378682
-## 138 {deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      negocios.articulo6,                                                                 
-##      deportes.articulo8}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 139 {politica.articulo5,                                                                 
-##      deportes.articulo6,                                                                 
-##      negocios.articulo6,                                                                 
-##      deportes.articulo5}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 140 {negocios.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo8}      =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 141 {deportes.articulo3,                                                                 
-##      negocios.articulo9,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 142 {deportes.articulo7,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo8,                                                                 
-##      internacional.articulo3} =&gt; {deportes.articulo8}   3.876029e-05  0.8333333  5.968482
-## 143 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      nacionales.articulo1}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 144 {deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      deportes.articulo6,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 145 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      politica.articulo4}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 146 {deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      deportes.articulo7,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 147 {deportes.articulo9,                                                                 
-##      nacionales.articulo7,                                                               
-##      deportes.articulo6,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 148 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      nacionales.articulo7,                                                               
-##      politica.articulo4}      =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 149 {deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      deportes.articulo6,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 150 {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      politica.articulo4}      =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 151 {nacionales.articulo7,                                                               
-##      deportes.articulo7,                                                                 
-##      deportes.articulo4,                                                                 
-##      variedades.articulo6}    =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 152 {deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      politica.articulo2,                                                                 
-##      deportes.articulo4}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 153 {nacionales.articulo7,                                                               
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo8}      =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 154 {deportes.articulo9,                                                                 
-##      nacionales.articulo7,                                                               
-##      deportes.articulo8,                                                                 
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 155 {deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      nacionales.articulo7,                                                               
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 156 {deportes.articulo2,                                                                 
-##      nacionales.articulo7,                                                               
-##      politica.articulo5,                                                                 
-##      deportes.articulo7}      =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 157 {nacionales.articulo7,                                                               
-##      politica.articulo5,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo8}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 158 {deportes.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      opinion.articulo9,                                                                  
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 159 {deportes.articulo1,                                                                 
-##      deportes.articulo5,                                                                 
-##      opinion.articulo9,                                                                  
-##      nacionales.articulo1}    =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 160 {deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      opinion.articulo9,                                                                  
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 161 {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      opinion.articulo9,                                                                  
-##      nacionales.articulo1}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 162 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo4,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 163 {deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo5,                                                                 
-##      opinion.articulo6}       =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 164 {deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      opinion.articulo6}       =&gt; {deportes.articulo4}   3.100823e-05  1.0000000  5.812554
-## 165 {deportes.articulo2,                                                                 
-##      deportes.articulo8,                                                                 
-##      politica.articulo4,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 166 {deportes.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo4,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo8}   3.100823e-05  0.8000000  5.729743
-## 167 {deportes.articulo7,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo7,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 168 {deportes.articulo1,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo7,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 169 {deportes.articulo1,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo7,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo5}   3.100823e-05  1.0000000  7.274460
-## 170 {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo1,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 171 {deportes.articulo1,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo1,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 172 {deportes.articulo1,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo5,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 173 {politica.articulo5,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo8,                                                                 
-##      opinion.articulo9}       =&gt; {deportes.articulo1}   3.876029e-05  0.8333333  4.799890
-## 174 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      opinion.articulo3}       =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 175 {deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      opinion.articulo3}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 176 {deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      opinion.articulo3,                                                                  
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.876029e-05  0.8333333  4.843795
-## 177 {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      politica.articulo1,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo8}   3.100823e-05  1.0000000  7.162179
-## 178 {deportes.articulo9,                                                                 
-##      politica.articulo2,                                                                 
-##      politica.articulo8,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 179 {deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      politica.articulo8,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 180 {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      politica.articulo4}      =&gt; {deportes.articulo7}   3.876029e-05  0.8333333  4.882293
-## 181 {deportes.articulo1,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo7,                                                                 
-##      comunidad.articulo6}     =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 182 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo1,                                                                 
-##      comunidad.articulo6}     =&gt; {deportes.articulo5}   3.100823e-05  1.0000000  7.274460
-## 183 {deportes.articulo5,                                                                 
-##      deportes.articulo8,                                                                 
-##      politica.articulo8,                                                                 
-##      comunidad.articulo6}     =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 184 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo8,                                                                 
-##      comunidad.articulo6}     =&gt; {deportes.articulo7}   3.100823e-05  1.0000000  5.858752
-## 185 {deportes.articulo9,                                                                 
-##      politica.articulo2,                                                                 
-##      variedades.articulo9,                                                               
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 186 {politica.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      variedades.articulo9,                                                               
-##      politica.articulo8}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 187 {deportes.articulo2,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo6,                                                                 
-##      variedades.articulo9}    =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 188 {comunidad.articulo9,                                                                
-##      deportes.articulo3,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo8}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 189 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      comunidad.articulo9,                                                                
-##      politica.articulo5}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 190 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo1,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 191 {deportes.articulo1,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo1,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 192 {politica.articulo5,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 193 {deportes.articulo1,                                                                 
-##      politica.articulo5,                                                                 
-##      politica.articulo8,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 194 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo8,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo4}   3.876029e-05  1.0000000  5.812554
-## 195 {deportes.articulo1,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 196 {deportes.articulo9,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo7,                                                                 
-##      politica.articulo3}      =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 197 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      politica.articulo7,                                                                 
-##      politica.articulo3}      =&gt; {deportes.articulo4}   3.100823e-05  1.0000000  5.812554
-## 198 {deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      variedades.articulo3}    =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 199 {deportes.articulo1,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo5,                                                                 
-##      variedades.articulo3}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 200 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo1,                                                                 
-##      variedades.articulo6}    =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 201 {deportes.articulo1,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      variedades.articulo6}    =&gt; {deportes.articulo7}   3.876029e-05  0.8333333  4.882293
-## 202 {deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      variedades.articulo6}    =&gt; {deportes.articulo1}   3.876029e-05  0.8333333  4.799890
-## 203 {deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo7}      =&gt; {deportes.articulo9}   3.100823e-05  0.8000000  5.169743
-## 204 {politica.articulo5,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo7,                                                                 
-##      politica.articulo8}      =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 205 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo5,                                                                 
-##      politica.articulo7}      =&gt; {deportes.articulo6}   3.876029e-05  0.8333333  5.404642
-## 206 {politica.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo9}    =&gt; {deportes.articulo2}   3.100823e-05  1.0000000  7.191727
-## 207 {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      politica.articulo2,                                                                 
-##      nacionales.articulo9}    =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 208 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo8,                                                                 
-##      nacionales.articulo9}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 209 {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      politica.articulo5,                                                                 
-##      nacionales.articulo9}    =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 210 {deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo1}      =&gt; {deportes.articulo6}   3.876029e-05  0.8333333  5.404642
-## 211 {deportes.articulo1,                                                                 
-##      politica.articulo5,                                                                 
-##      deportes.articulo5,                                                                 
-##      politica.articulo9}      =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 212 {deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      deportes.articulo8,                                                                 
-##      comunidad.articulo8}     =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 213 {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo8,                                                                 
-##      comunidad.articulo8}     =&gt; {deportes.articulo7}   3.100823e-05  1.0000000  5.858752
-## 214 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      deportes.articulo8,                                                                 
-##      comunidad.articulo8}     =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 215 {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      comunidad.articulo8}     =&gt; {deportes.articulo8}   3.100823e-05  0.8000000  5.729743
-## 216 {deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 217 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo4}   3.100823e-05  1.0000000  5.812554
-## 218 {deportes.articulo1,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo9}   3.100823e-05  1.0000000  6.462178
-## 219 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo8,                                                                 
-##      opinion.articulo2}       =&gt; {deportes.articulo6}   3.100823e-05  1.0000000  6.485571
-## 220 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      opinion.articulo2}       =&gt; {politica.articulo8}   3.100823e-05  1.0000000 14.150724
-## 221 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo7,                                                                 
-##      negocios.articulo6,                                                                 
-##      deportes.articulo8}      =&gt; {deportes.articulo1}   3.100823e-05  1.0000000  5.759868
-## 222 {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      negocios.articulo6,                                                                 
-##      deportes.articulo8}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 223 {deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      negocios.articulo6}      =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 224 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo6,                                                                 
-##      negocios.articulo6}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002
-## 225 {deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      negocios.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4}      =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 226 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      internacional.articulo9} =&gt; {deportes.articulo8}   3.100823e-05  0.8000000  5.729743
-## 227 {deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.876029e-05  0.8333333  4.799890
-## 228 {deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.876029e-05  1.0000000  5.759868
-## 229 {deportes.articulo2,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 230 {deportes.articulo1,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo2}   3.100823e-05  0.8000000  5.753381
-## 231 {deportes.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   4.651235e-05  0.8571429  4.937030
-## 232 {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      deportes.articulo4,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo5}   4.651235e-05  0.8571429  6.235251
-## 233 {deportes.articulo6,                                                                 
-##      deportes.articulo7,                                                                 
-##      deportes.articulo4,                                                                 
-##      deportes.articulo5,                                                                 
-##      nacionales.articulo1}    =&gt; {deportes.articulo1}   3.100823e-05  0.8000000  4.607894
-## 234 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      opinion.articulo3}       =&gt; {deportes.articulo3}   3.100823e-05  0.8000000  5.163534
-## 235 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo4,                                                                 
-##      opinion.articulo3}       =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 236 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo6}      =&gt; {deportes.articulo6}   3.876029e-05  0.8333333  5.404642
-## 237 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo8,                                                                 
-##      nacionales.articulo3}    =&gt; {deportes.articulo6}   3.100823e-05  0.8000000  5.188457
-## 238 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      nacionales.articulo3}    =&gt; {deportes.articulo8}   3.100823e-05  0.8000000  5.729743
-## 239 {deportes.articulo1,                                                                 
-##      deportes.articulo9,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo8,                                                                 
-##      nacionales.articulo3}    =&gt; {deportes.articulo2}   3.100823e-05  1.0000000  7.191727
-## 240 {deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      comunidad.articulo3,                                                                
-##      deportes.articulo7,                                                                 
-##      deportes.articulo5}      =&gt; {deportes.articulo4}   3.100823e-05  1.0000000  5.812554
-## 241 {deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      comunidad.articulo3,                                                                
-##      deportes.articulo7,                                                                 
-##      deportes.articulo4}      =&gt; {deportes.articulo5}   3.100823e-05  0.8000000  5.819568
-## 242 {deportes.articulo1,                                                                 
-##      deportes.articulo2,                                                                 
-##      deportes.articulo6,                                                                 
-##      deportes.articulo4,                                                                 
-##      politica.articulo9}      =&gt; {deportes.articulo3}   3.100823e-05  1.0000000  6.454418
-## 243 {deportes.articulo9,                                                                 
-##      deportes.articulo3,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo7,                                                                 
-##      politica.articulo8}      =&gt; {deportes.articulo4}   3.100823e-05  0.8000000  4.650043
-## 244 {deportes.articulo3,                                                                 
-##      politica.articulo5,                                                                 
-##      politica.articulo2,                                                                 
-##      deportes.articulo5,                                                                 
-##      deportes.articulo8}      =&gt; {deportes.articulo7}   3.100823e-05  0.8000000  4.687002</code></pre>
+## creating transaction tree ... done [0.27s].
+## checking subsets of size 1 2 3 4 5 6 7 done [0.19s].
+## writing ... [206 rule(s)] done [0.02s].
+## creating S4 object  ... done [0.05s].
+##   lhs                          rhs                       support confidence     lift
+## 1 {deportes.articulo7,                                                              
+##    deportes.articulo5,                                                              
+##    internacional.articulo3,                                                         
+##    politica.articulo8}      =&gt; {deportes.articulo8} 4.009591e-05  0.8333333 6.030496
+## 2 {deportes.articulo2,                                                              
+##    deportes.articulo7,                                                              
+##    deportes.articulo4,                                                              
+##    deportes.articulo5,                                                              
+##    nacionales.articulo1}    =&gt; {deportes.articulo1} 4.009591e-05  1.0000000 5.832873
+## 3 {deportes.articulo1,                                                              
+##    deportes.articulo9,                                                              
+##    politica.articulo2,                                                              
+##    deportes.articulo7,                                                              
+##    deportes.articulo5}      =&gt; {deportes.articulo6} 4.009591e-05  0.8333333 5.452125
+## 4 {deportes.articulo3,                                                              
+##    sucesos.articulo8,                                                               
+##    deportes.articulo7,                                                              
+##    deportes.articulo5}      =&gt; {deportes.articulo4} 3.207673e-05  0.8000000 4.702593
+## 5 {deportes.articulo7,                                                              
+##    deportes.articulo5,                                                              
+##    politica.articulo7,                                                              
+##    opinion.articulo9}       =&gt; {deportes.articulo1} 3.207673e-05  0.8000000 4.666299
+## 6 {deportes.articulo2,                                                              
+##    deportes.articulo6,                                                              
+##    deportes.articulo7,                                                              
+##    deportes.articulo5,                                                              
+##    nacionales.articulo1}    =&gt; {deportes.articulo1} 3.207673e-05  0.8000000 4.666299
+## NULL
+##   lhs                          rhs                       support confidence     lift
+## 1 {deportes.articulo2,                                                              
+##    deportes.articulo7,                                                              
+##    deportes.articulo4,                                                              
+##    deportes.articulo5,                                                              
+##    nacionales.articulo1}    =&gt; {deportes.articulo1} 4.009591e-05  1.0000000 5.832873
+## 2 {deportes.articulo7,                                                              
+##    deportes.articulo5,                                                              
+##    internacional.articulo3,                                                         
+##    politica.articulo8}      =&gt; {deportes.articulo8} 4.009591e-05  0.8333333 6.030496
+## 3 {deportes.articulo1,                                                              
+##    deportes.articulo9,                                                              
+##    politica.articulo2,                                                              
+##    deportes.articulo7,                                                              
+##    deportes.articulo5}      =&gt; {deportes.articulo6} 4.009591e-05  0.8333333 5.452125
+## 4 {deportes.articulo3,                                                              
+##    sucesos.articulo8,                                                               
+##    deportes.articulo7,                                                              
+##    deportes.articulo5}      =&gt; {deportes.articulo4} 3.207673e-05  0.8000000 4.702593
+## 5 {deportes.articulo7,                                                              
+##    deportes.articulo5,                                                              
+##    politica.articulo7,                                                              
+##    opinion.articulo9}       =&gt; {deportes.articulo1} 3.207673e-05  0.8000000 4.666299
+## 6 {deportes.articulo2,                                                              
+##    deportes.articulo6,                                                              
+##    deportes.articulo7,                                                              
+##    deportes.articulo5,                                                              
+##    nacionales.articulo1}    =&gt; {deportes.articulo1} 3.207673e-05  0.8000000 4.666299
+## NULL
+## [1] &quot;Elementos elegidos: deportes.articulo5&quot;
+## [2] &quot;Elementos elegidos: deportes.articulo7&quot;</code></pre>
+<pre class="r"><code>recommend(datransactions, periodico$article, 0.00003, 0.8, sample(recom, 1))</code></pre>
+<pre><code>## [1] &quot;Elementos elegidos: deportes/articulo9,nacionales/articulo6&quot;
+## Apriori
+## 
+## Parameter specification:
+##  confidence minval smax arem  aval originalSupport support minlen maxlen
+##         0.8    0.1    1 none FALSE            TRUE   3e-05      1     10
+##  target   ext
+##   rules FALSE
+## 
+## Algorithmic control:
+##  filter tree heap memopt load sort verbose
+##     0.1 TRUE TRUE  FALSE TRUE    2    TRUE
+## 
+## Absolute minimum support count: 3 
+## 
+## set item appearances ...[0 item(s)] done [0.00s].
+## set transactions ...[81 item(s), 124701 transaction(s)] done [0.12s].
+## sorting and recoding items ... [81 item(s)] done [0.02s].
+## creating transaction tree ... done [0.26s].
+## checking subsets of size 1 2 3 4 5 6 7 done [0.16s].
+## writing ... [206 rule(s)] done [0.02s].
+## creating S4 object  ... done [0.06s].
+## NULL
+## NULL
+## [1] &quot;Elementos elegidos: deportes.articulo9&quot;  
+## [2] &quot;Elementos elegidos: nacionales.articulo6&quot;</code></pre>
+<p>Los valores seleccionados como <strong>soporte</strong> y <strong>confianza</strong> fueron seleccionados de acuerdo al numero de transacciones entre la proporcion de las mismas (soporte) y el soporte de la union de 2 conjuntos X y Y sobre el soporte de X, lo que seria lo mismo que la cardinalidad de <em>cardinalidad</em>(X_union_Y)/<em>cardinalidad</em>(X). Se realizaron pruebas sucesivas con diferentes valores y se decidio dejar los expresados anteriormente (<em>0.00003</em> para el soporte y <em>0.8</em> para la confianza), de manera que se emitiera un numero razonable de reglas con un alto grado de diversidad en cuanto a sus predicciones, esto debido a que con otras pruebas, predice en proporcion 8 a 2, un solo tipo de contenido. El resultado sera <em>NULL</em> cuando no haya ningun antecedente con el parametro seleccionado que haya sido predicho.</p>
 </div>
 <div id="actividad-2" class="section level3">
 <h3>Actividad 2</h3>
@@ -1279,46 +372,46 @@ k.means &lt;- kmeans(nodata2[,c(1:81)], centers = 8)</code></pre>
 <pre class="r"><code>periodico$users &lt;- k.means$cluster</code></pre>
 <p>Usuarios tipo 1:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 1])</code></pre>
-<pre><code>## [1] 23782</code></pre>
+<pre><code>## [1] 16130</code></pre>
 <p>Usuarios tipo 2:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 2])</code></pre>
-<pre><code>## [1] 9320</code></pre>
+<pre><code>## [1] 8079</code></pre>
 <p>Usuarios tipo 3:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 3])</code></pre>
-<pre><code>## [1] 47516</code></pre>
+<pre><code>## [1] 47982</code></pre>
 <p>Usuarios tipo 4:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 4])</code></pre>
-<pre><code>## [1] 12724</code></pre>
+<pre><code>## [1] 6935</code></pre>
 <p>Usuarios tipo 5:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 5])</code></pre>
-<pre><code>## [1] 3493</code></pre>
+<pre><code>## [1] 14373</code></pre>
 <p>Usuarios tipo 6:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 6])</code></pre>
-<pre><code>## [1] 18786</code></pre>
+<pre><code>## [1] 14688</code></pre>
 <p>Usuarios tipo 7:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 7])</code></pre>
-<pre><code>## [1] 6178</code></pre>
+<pre><code>## [1] 9614</code></pre>
 <p>Proporcion de Usuarios tipo 1:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 1])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.1843594</code></pre>
+<pre><code>## [1] 0.1293494</code></pre>
 <p>Proporcion de Usuarios tipo 2:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 2])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.07224918</code></pre>
+<pre><code>## [1] 0.06478697</code></pre>
 <p>Proporcion de Usuarios tipo 3:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 3])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.3683468</code></pre>
+<pre><code>## [1] 0.3847764</code></pre>
 <p>Proporcion de Usuarios tipo 4:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 4])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.09863719</code></pre>
+<pre><code>## [1] 0.05561303</code></pre>
 <p>Proporcion de Usuarios tipo 5:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 5])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.02707794</code></pre>
+<pre><code>## [1] 0.1152597</code></pre>
 <p>Proporcion de Usuarios tipo 6:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 6])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.1456302</code></pre>
+<pre><code>## [1] 0.1177857</code></pre>
 <p>Proporcion de Usuarios tipo 7:</p>
 <pre class="r"><code>length(periodico$ID[periodico$users == 7])/nrow(periodico)</code></pre>
-<pre><code>## [1] 0.04789222</code></pre>
+<pre><code>## [1] 0.07709641</code></pre>
 </div>
 <div id="actividad-4" class="section level3">
 <h3>Actividad 4</h3>
@@ -1359,7 +452,7 @@ head(sort(table(periodico$ID), decreasing = T), 10)</code></pre>
 <pre><code>## 
 ##    trans1   trans10  trans100 trans1001 trans1002 trans1003 trans1004 
 ##         8         8         8         8         8         8         8 
-## trans1005 trans1006 trans1007 
+## trans1005 trans1006 trans1008 
 ##         8         8         8</code></pre>
 </div>
 </div>
